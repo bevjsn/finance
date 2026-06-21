@@ -297,6 +297,11 @@
     // PDF / print
     $('btn-pdf').addEventListener('click', function () { window.print(); });
 
+    // mobile sidebar toggle
+    $('nav-toggle').addEventListener('click', function () {
+      document.body.classList.toggle('sidebar-open');
+    });
+
     // onboarding modal
     $('onboard-build').addEventListener('click', function () {
       state.age = num($('onboard-age').value) || 32;

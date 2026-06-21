@@ -339,3 +339,72 @@ input[type="range"]::-moz-range-thumb {
   .two-col { grid-template-columns: 1fr; }
   .roth-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* Hamburger toggle — only shown on phones */
+.nav-toggle { display: none; }
+
+/* ---- Phone / tablet portrait ---- */
+@media (max-width: 768px) {
+  /* let the whole document scroll instead of independent panels */
+  html, body { height: auto; overflow-x: hidden; }
+  .shell {
+    display: block;
+    height: auto;
+    overflow: visible;
+  }
+  .sidebar {
+    width: 100%; min-width: 0;
+    height: auto;
+    overflow: visible;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .main {
+    height: auto;
+    overflow: visible;
+    padding: 16px 14px 32px;
+  }
+
+  /* sidebar becomes a collapsible drawer; hidden by default on phones */
+  body.sidebar-open .sidebar { display: block; }
+  .sidebar { display: none; }
+
+  /* nav: show hamburger, tighten spacing */
+  .topnav { padding: 0 14px; position: sticky; }
+  .nav-toggle {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--card); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 7px 11px; font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: inherit;
+  }
+  .nav-tag { display: none; }
+  .nav-title { font-size: 15px; }
+  .btn-ghost { padding: 7px 10px; font-size: 12px; }
+
+  /* KPI + content stacks */
+  .kpi-row { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+  .kpi-value { font-size: 21px; }
+  .panel { padding: 14px; border-radius: 12px; margin-bottom: 14px; }
+  .panel-head { flex-wrap: wrap; gap: 8px; }
+  .roth-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .roth-stat-val { font-size: 16px; }
+
+  /* tax breakdown stacks donut above the rows */
+  .tax-split { grid-template-columns: 1fr; gap: 14px; }
+  .donut-box { height: 180px; }
+
+  /* table scrolls horizontally within its wrapper */
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .yoy-table { min-width: 560px; }
+
+  /* Monte Carlo header pills wrap neatly */
+  .mc-stats { flex-wrap: wrap; }
+}
+
+/* ---- Small phones ---- */
+@media (max-width: 460px) {
+  .kpi-row { grid-template-columns: 1fr; }
+  .roth-grid { grid-template-columns: 1fr; }
+  .field-row { grid-template-columns: 1fr; }
+}
