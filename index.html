@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WealthMD — Physician Financial Planning</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Onboarding modal -->
+  <div class="modal-overlay" id="onboard-modal">
+    <div class="modal">
+      <div class="modal-logo"><span class="logo-mark">W</span> WealthMD</div>
+      <h2>Let's build your plan</h2>
+      <p class="modal-sub">A financial roadmap built for physicians. Two quick questions to get started.</p>
+      <div class="modal-field">
+        <label>Current age</label>
+        <input type="number" id="onboard-age" value="32" min="18" max="80">
+      </div>
+      <div class="modal-field">
+        <label>Planned retirement age</label>
+        <input type="number" id="onboard-retire" value="62" min="40" max="80">
+      </div>
+      <button class="btn-primary modal-btn" id="onboard-build">Build My Plan →</button>
+    </div>
+  </div>
+
+  <!-- Top nav -->
+  <nav class="topnav">
+    <div class="nav-left">
+      <span class="logo-mark">W</span>
+      <span class="nav-title">WealthMD</span>
+      <span class="nav-tag">2025 Tax Year</span>
+    </div>
+    <button class="btn-ghost" id="btn-pdf">⬇ Download PDF</button>
+  </nav>
+
+  <!-- App shell -->
+  <div class="shell">
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+
+      <div class="card">
+        <h3>Your Profile</h3>
+        <div class="field">
+          <label>Annual gross income</label>
+          <div class="input-prefix"><span>$</span><input type="number" id="input-income" value="350000" min="0" step="5000"></div>
+        </div>
+        <div class="field">
+          <label>Filing status</label>
+          <div class="seg-toggle">
+            <button id="toggle-single" class="seg active">Single</button>
+            <button id="toggle-married" class="seg">Married (MFJ)</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>State</label>
+          <select id="input-state"></select>
+        </div>
+        <div class="field">
+          <label>City (local tax)</label>
+          <select id="input-city"></select>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Deductions</h3>
+        <div class="seg-toggle">
+          <button id="ded-standard" class="seg active">Standard</button>
+          <button id="ded-itemize" class="seg">Itemize</button>
+        </div>
+        <div id="itemize-fields" style="display:none">
+          <div class="field"><label>Mortgage interest</label>
+            <div class="input-prefix"><span>$</span><input type="number" id="ded-mortgage" value="0" min="0" step="500"></div>
+          </div>
+          <div class="field"><label>SALT <span class="hint">(capped $10k)</span></label>
+            <div class="input-prefix"><span>$</span><input type="number" id="ded-salt" value="0" min="0" step="500"></div>
+          </div>
+          <div class="field"><label>Charitable contributions</label>
+            <div class="input-prefix"><span>$</span><input type="number" id="ded-charity" value="0" min="0" step="500"></div>
+          </div>
+          <div class="field"><label>Medical expenses <span class="hint">(over 7.5% AGI)</span></label>
+            <div class="input-prefix"><span>$</span><input type="number" id="ded-medical" value="0" min="0" step="500"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card collapsed" id="match-card">
+        <div class="collapsible-header">
+          <h3>Employer Match</h3>
+          <span class="chevron">▾</span>
+        </div>
+        <div class="collapsible-body">
+          <label class="switch-row">
+            <span>Enable employer match</span>
+            <input type="checkbox" id="match-toggle" checked>
+          </label>
+          <div class="field"><label>Match rate <span class="hint">(¢ per $)</span></label>
+            <input type="number" id="match-rate" value="100" min="0" step="5">
+          </div>
+          <div class="field"><label>Match cap <span class="hint">(% of salary)</span></label>
+            <input type="number" id="match-cap" value="4" min="0" step="0.5">
+          </div>
+          <div class="estimate-row">Estimated annual match: <strong id="match-estimate">$0</strong></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Savings Buckets</h3>
+        <div class="bucket-head">
+          <span></span>
+          <span class="bh">Balance</span>
+          <span class="bh">Annual</span>
+        </div>
+        <div id="buckets-rows"></div>
+      </div>
+
+      <div class="card collapsed" id="loan-card">
+        <div class="collapsible-header">
+          <h3>Student Loans</h3>
+          <span class="chevron">▾</span>
+        </div>
+        <div class="collapsible-body">
+          <label class="switch-row">
+            <span>Have student loans</span>
+            <input type="checkbox" id="loan-toggle" checked>
+          </label>
+          <div class="field"><label>Loan balance</label>
+            <div class="input-prefix"><span>$</span><input type="number" id="loan-balance" value="220000" min="0" step="1000"></div>
+          </div>
+          <div class="field"><label>Interest rate <span class="hint">(%)</span></label>
+            <input type="number" id="loan-rate" value="6.5" min="0" step="0.1">
+          </div>
+          <div class="field"><label>Annual payment</label>
+            <div class="input-prefix"><span>$</span><input type="number" id="loan-payment" value="24000" min="0" step="500"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Projection Settings</h3>
+        <div class="field">
+          <label>Expected annual return <span class="slider-val" id="return-val">7%</span></label>
+          <input type="range" id="input-return" min="1" max="15" step="0.5" value="7">
+        </div>
+        <div class="field">
+          <label>Years to project <span class="slider-val" id="years-val">30 yrs</span></label>
+          <input type="range" id="input-years" min="5" max="40" step="1" value="30">
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- Main content -->
+    <main class="main" id="main">
+
+      <div class="kpi-row">
+        <div class="kpi-card">
+          <div class="kpi-label">Annual Take-Home</div>
+          <div class="kpi-value" id="kpi-takehome">$0</div>
+          <div class="kpi-sub" id="kpi-takehome-sub">—</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Effective Tax Rate</div>
+          <div class="kpi-value" id="kpi-taxrate">0%</div>
+          <div class="kpi-sub" id="kpi-taxrate-sub">—</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Savings Rate</div>
+          <div class="kpi-value" id="kpi-savings">0%</div>
+          <div class="kpi-sub" id="kpi-savings-sub">—</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Projected Net Worth</div>
+          <div class="kpi-value" id="kpi-networth">$0</div>
+          <div class="kpi-sub" id="kpi-networth-sub">—</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>Net Worth Projection</h3></div>
+        <div class="chart-box" style="height:240px"><canvas id="chart-networth"></canvas></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Monte Carlo Simulation <span class="muted">· 500 runs</span></h3>
+          <div class="mc-stats">
+            <span class="mc-pill p10">P10 <strong id="mc-p10">$0</strong></span>
+            <span class="mc-pill p50">P50 <strong id="mc-p50">$0</strong></span>
+            <span class="mc-pill p90">P90 <strong id="mc-p90">$0</strong></span>
+          </div>
+        </div>
+        <div class="chart-box" style="height:240px"><canvas id="chart-montecarlo"></canvas></div>
+      </div>
+
+      <div class="two-col">
+        <div class="panel">
+          <div class="panel-head"><h3>Portfolio by Bucket</h3></div>
+          <div class="chart-box" style="height:260px"><canvas id="chart-portfolio"></canvas></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>Tax Breakdown</h3></div>
+          <div class="tax-split">
+            <div class="donut-box"><canvas id="chart-taxdonut"></canvas></div>
+            <div class="tax-rows" id="tax-rows"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>Annual Cash Flow</h3></div>
+        <div class="chart-box" style="height:140px"><canvas id="chart-cashflow"></canvas></div>
+      </div>
+
+      <div class="panel roth-card">
+        <div class="panel-head"><h3>Roth Conversion Optimizer</h3></div>
+        <div class="roth-grid">
+          <div class="roth-stat"><span class="roth-stat-label">Current marginal rate</span><span class="roth-stat-val" id="roth-current">—</span></div>
+          <div class="roth-stat"><span class="roth-stat-label">Est. retirement rate</span><span class="roth-stat-val" id="roth-retire">—</span></div>
+          <div class="roth-stat"><span class="roth-stat-label">Conversion window</span><span class="roth-stat-val" id="roth-window">—</span></div>
+          <div class="roth-stat"><span class="roth-stat-label">Suggested annual conversion</span><span class="roth-stat-val accent" id="roth-annual">—</span></div>
+          <div class="roth-stat"><span class="roth-stat-label">Total convertible</span><span class="roth-stat-val" id="roth-total">—</span></div>
+          <div class="roth-stat"><span class="roth-stat-label">Est. tax cost</span><span class="roth-stat-val" id="roth-taxcost">—</span></div>
+        </div>
+        <div class="roth-verdict neutral" id="roth-verdict">—</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>Year-by-Year Detail</h3></div>
+        <div class="table-wrap">
+          <table class="yoy-table">
+            <thead>
+              <tr>
+                <th>Year / Age</th><th>Net Worth</th><th>Total Assets</th><th>Loan Balance</th>
+                <th>Employer Match</th><th>Total Saved</th><th>Est. Spending</th>
+              </tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="js/taxes.js"></script>
+  <script src="js/calc.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
