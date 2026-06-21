@@ -290,6 +290,15 @@
       });
     });
 
+    // keep remembered age/retirement in sync when edited in the Profile card
+    ['input-age', 'input-retire'].forEach(function (id) {
+      $(id).addEventListener('change', function () {
+        state.age = num($('input-age').value) || state.age;
+        state.retirementAge = num($('input-retire').value) || state.retirementAge;
+        saveOnboarding();
+      });
+    });
+
     // sliders show values
     $('input-return').addEventListener('input', function () { $('return-val').textContent = this.value + '%'; });
     $('input-years').addEventListener('input', function () { $('years-val').textContent = this.value + ' yrs'; });
@@ -309,9 +318,30 @@
       // sync the editable Profile fields so age can be changed later
       $('input-age').value = state.age;
       $('input-retire').value = state.retirementAge;
+      saveOnboarding();
       $('onboard-modal').classList.add('hidden');
       renderAll();
     });
+  }
+
+  /* ---- Onboarding persistence ----------------------------------------- */
+  const ONBOARD_KEY = 'wealthmd_onboard';
+
+  function saveOnboarding() {
+    try {
+      localStorage.setItem(ONBOARD_KEY, JSON.stringify({
+        done: true, age: state.age, retirementAge: state.retirementAge
+      }));
+    } catch (e) { /* localStorage unavailable (private mode) — modal will show next time */ }
+  }
+
+  function loadOnboarding() {
+    try {
+      const raw = localStorage.getItem(ONBOARD_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      return data && data.done ? data : null;
+    } catch (e) { return null; }
   }
 
   function setFiling(f) {
@@ -338,7 +368,19 @@
     // sync slider labels
     $('return-val').textContent = state.projection.returnPct + '%';
     $('years-val').textContent = state.projection.years + ' yrs';
-    // initial render behind modal so the app looks alive
+
+    // skip onboarding if we've remembered the user's age/retirement
+    const saved = loadOnboarding();
+    if (saved) {
+      state.age = saved.age || state.age;
+      state.retirementAge = saved.retirementAge || state.retirementAge;
+      $('input-age').value = state.age;
+      $('input-retire').value = state.retirementAge;
+      $('onboard-age').value = state.age;
+      $('onboard-retire').value = state.retirementAge;
+      $('onboard-modal').classList.add('hidden');
+    }
+
     renderAll();
   }
 
