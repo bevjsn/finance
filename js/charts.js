@@ -7,10 +7,11 @@
   const FONT = "'Inter', system-ui, sans-serif";
   const GRID = 'rgba(148,163,184,0.10)';
   const TICK = '#64748b';
-  const INDIGO = '#6366f1';
+  const INDIGO = '#3b82f6';   // primary blue accent
+  const BLUE_LT = '#60a5fa';  // lighter blue for band edges
   const GREEN = '#22c55e';
   const RED = '#ef4444';
-  const PURPLE = '#a855f7';
+  const PURPLE = '#a855f7';   // reserved for the Employer Match cash-flow category
   const AMBER = '#f59e0b';
 
   const charts = {};
@@ -40,7 +41,7 @@
 
   const tooltip = {
     backgroundColor: '#0a0f1e',
-    borderColor: 'rgba(99,102,241,0.4)',
+    borderColor: 'rgba(59,130,246,0.4)',
     borderWidth: 1,
     titleColor: '#e2e8f0',
     bodyColor: '#cbd5e1',
@@ -104,7 +105,7 @@
       datasets: [
         {
           label: 'Net Worth', data: proj.rows.map(function (r) { return r.netWorth; }),
-          borderColor: INDIGO, backgroundColor: 'rgba(99,102,241,0.18)', fill: true,
+          borderColor: INDIGO, backgroundColor: 'rgba(59,130,246,0.18)', fill: true,
           tension: 0.3, pointRadius: 0, borderWidth: 2
         },
         {
@@ -137,11 +138,11 @@
     const data = {
       labels: labels,
       datasets: [
-        { label: 'P90', data: mc.bands.p90, borderColor: '#818cf8', backgroundColor: 'rgba(99,102,241,0.10)', fill: '+1', tension: 0.25, pointRadius: 0, borderWidth: 1 },
-        { label: 'P75', data: mc.bands.p75, borderColor: 'rgba(129,140,248,0.6)', backgroundColor: 'rgba(99,102,241,0.16)', fill: '+1', tension: 0.25, pointRadius: 0, borderWidth: 1 },
-        { label: 'P50', data: mc.bands.p50, borderColor: INDIGO, backgroundColor: 'rgba(99,102,241,0.16)', fill: '+1', tension: 0.25, pointRadius: 0, borderWidth: 2 },
-        { label: 'P25', data: mc.bands.p25, borderColor: 'rgba(129,140,248,0.6)', backgroundColor: 'rgba(99,102,241,0.10)', fill: '+1', tension: 0.25, pointRadius: 0, borderWidth: 1 },
-        { label: 'P10', data: mc.bands.p10, borderColor: '#818cf8', backgroundColor: 'transparent', fill: false, tension: 0.25, pointRadius: 0, borderWidth: 1 }
+        { label: 'P90', data: mc.bands.p90, borderColor: '#60a5fa', backgroundColor: 'rgba(59,130,246,0.10)', fill: '+1', tension: 0.25, pointRadius: 0, borderWidth: 1 },
+        { label: 'P75', data: mc.bands.p75, borderColor: 'rgba(96,165,250,0.6)', backgroundColor: 'rgba(59,130,246,0.16)', fill: '+1', tension: 0.25, pointRadius: 0, borderWidth: 1 },
+        { label: 'P50', data: mc.bands.p50, borderColor: INDIGO, backgroundColor: 'rgba(59,130,246,0.16)', fill: '+1', tension: 0.25, pointRadius: 0, borderWidth: 2 },
+        { label: 'P25', data: mc.bands.p25, borderColor: 'rgba(96,165,250,0.6)', backgroundColor: 'rgba(59,130,246,0.10)', fill: '+1', tension: 0.25, pointRadius: 0, borderWidth: 1 },
+        { label: 'P10', data: mc.bands.p10, borderColor: '#60a5fa', backgroundColor: 'transparent', fill: false, tension: 0.25, pointRadius: 0, borderWidth: 1 }
       ]
     };
     render('monteCarlo', canvasId, 'line', data, {
@@ -158,7 +159,7 @@
   function portfolio(canvasId, proj) {
     const labels = proj.rows.map(function (r) { return 'Age ' + r.age; });
     const colors = {
-      trad401k: '#6366f1', roth401k: '#818cf8', plan457: '#22c55e',
+      trad401k: '#2563eb', roth401k: '#60a5fa', plan457: '#22c55e',
       rothIra: '#14b8a6', hsa: '#eab308', taxable: '#f97316', cash: '#64748b'
     };
     const datasets = Calc.BUCKETS.map(function (b) {

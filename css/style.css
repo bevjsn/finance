@@ -4,8 +4,9 @@
   --surface: #111827;
   --card: #1a2235;
   --card-2: #202b42;
-  --accent: #6366f1;
-  --accent-soft: rgba(99, 102, 241, 0.15);
+  --accent: #3b82f6;
+  --accent-2: #2563eb;
+  --accent-soft: rgba(59, 130, 246, 0.15);
   --text: #e2e8f0;
   --text-dim: #94a3b8;
   --text-faint: #64748b;
@@ -32,7 +33,7 @@ html, body {
 .logo-mark {
   display: inline-flex; align-items: center; justify-content: center;
   width: 26px; height: 26px; border-radius: 7px;
-  background: linear-gradient(135deg, var(--accent), #8b5cf6);
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
   color: #fff; font-weight: 700; font-size: 14px;
 }
 
@@ -61,7 +62,7 @@ html, body {
 .btn-ghost:hover { background: var(--card-2); }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--accent), #8b5cf6);
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
   color: #fff; border: none; border-radius: 9px;
   padding: 12px 18px; font-size: 14px; font-weight: 600; cursor: pointer;
   transition: filter .15s, transform .05s;
@@ -193,17 +194,34 @@ input[type="range"]::-moz-range-thumb {
 .card.collapsed .chevron { transform: rotate(-90deg); }
 .collapsible-body { margin-top: 12px; }
 
+/* two fields side by side (age row) */
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.field-row .field { margin-bottom: 12px; }
+
 /* buckets */
-.bucket-head {
-  display: grid; grid-template-columns: 1fr 80px 80px; gap: 6px;
-  margin-bottom: 8px;
+.bucket-group { margin-bottom: 16px; }
+.bucket-group:last-child { margin-bottom: 0; }
+.bucket-group-head {
+  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  font-size: 12px; font-weight: 600; color: var(--accent);
+  padding-bottom: 8px; margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
 }
-.bucket-head .bh { font-size: 10px; color: var(--text-faint); text-align: center; text-transform: uppercase; }
-.bucket-row { margin-bottom: 10px; }
-.bucket-label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 4px; }
-.bucket-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.bucket-inputs input { padding: 7px 8px; font-size: 12px; }
-.warn { color: var(--red); font-size: 11px; margin-top: 3px; display: none; }
+.bucket-group-hint { font-size: 10px; font-weight: 400; color: var(--text-faint); }
+.bucket-row { margin-bottom: 12px; }
+.bucket-row:last-child { margin-bottom: 0; }
+.bucket-label { display: block; font-size: 12.5px; color: var(--text); font-weight: 500; margin-bottom: 6px; }
+.bucket-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.bucket-input { display: flex; flex-direction: column; gap: 3px; }
+.bucket-input-tag {
+  font-size: 9.5px; font-weight: 600; letter-spacing: .4px; text-transform: uppercase;
+}
+.bucket-input.balance .bucket-input-tag { color: var(--text-faint); }
+.bucket-input.contrib .bucket-input-tag { color: var(--accent); }
+.input-prefix.sm input { padding: 7px 8px 7px 20px; font-size: 12px; }
+.input-prefix.sm span { left: 8px; font-size: 11px; }
+.bucket-input.contrib .input-prefix.sm input { border-color: rgba(59,130,246,0.35); }
+.warn { color: var(--red); font-size: 11px; margin-top: 4px; display: none; }
 
 /* ---- KPI cards ---- */
 .kpi-row {

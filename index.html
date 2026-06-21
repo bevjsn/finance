@@ -46,6 +46,16 @@
 
       <div class="card">
         <h3>Your Profile</h3>
+        <div class="field-row">
+          <div class="field">
+            <label>Current age</label>
+            <input type="number" id="input-age" value="32" min="18" max="90">
+          </div>
+          <div class="field">
+            <label>Retirement age</label>
+            <input type="number" id="input-retire" value="62" min="40" max="90">
+          </div>
+        </div>
         <div class="field">
           <label>Annual gross income</label>
           <div class="input-prefix"><span>$</span><input type="number" id="input-income" value="350000" min="0" step="5000"></div>
@@ -111,11 +121,6 @@
 
       <div class="card">
         <h3>Savings Buckets</h3>
-        <div class="bucket-head">
-          <span></span>
-          <span class="bh">Balance</span>
-          <span class="bh">Annual</span>
-        </div>
         <div id="buckets-rows"></div>
       </div>
 

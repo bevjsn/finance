@@ -18,13 +18,18 @@
   /* The savings buckets in display order. growth: 'market' | 'cash'.
    * taxClass used for pre-tax (AGI-reducing) determination.            */
   const BUCKETS = [
-    { key: 'trad401k', label: '401k/403b Traditional', growth: 'market', preTax: true, limitKey: 'k401' },
-    { key: 'roth401k', label: '401k/403b Roth', growth: 'market', preTax: false, limitKey: 'k401' },
-    { key: 'plan457', label: '457(b)', growth: 'market', preTax: true, limitKey: 'k457' },
-    { key: 'rothIra', label: 'Backdoor Roth IRA', growth: 'market', preTax: false, limitKey: 'ira' },
-    { key: 'hsa', label: 'HSA', growth: 'market', preTax: true, limitKey: 'hsa' },
-    { key: 'taxable', label: 'Taxable Brokerage', growth: 'market', preTax: false, limitKey: null },
-    { key: 'cash', label: 'Cash / Emergency Fund', growth: 'cash', preTax: false, limitKey: null }
+    { key: 'trad401k', label: '401k/403b Traditional', growth: 'market', preTax: true, limitKey: 'k401', group: 'retirement' },
+    { key: 'roth401k', label: '401k/403b Roth', growth: 'market', preTax: false, limitKey: 'k401', group: 'retirement' },
+    { key: 'plan457', label: '457(b)', growth: 'market', preTax: true, limitKey: 'k457', group: 'retirement' },
+    { key: 'rothIra', label: 'Backdoor Roth IRA', growth: 'market', preTax: false, limitKey: 'ira', group: 'retirement' },
+    { key: 'hsa', label: 'HSA', growth: 'market', preTax: true, limitKey: 'hsa', group: 'retirement' },
+    { key: 'taxable', label: 'Taxable Brokerage', growth: 'market', preTax: false, limitKey: null, group: 'savings' },
+    { key: 'cash', label: 'Cash / Emergency Fund', growth: 'cash', preTax: false, limitKey: null, group: 'savings' }
+  ];
+
+  const BUCKET_GROUPS = [
+    { id: 'retirement', label: 'Retirement Accounts', hint: 'Tax-advantaged, for retirement' },
+    { id: 'savings', label: 'Savings & Cash', hint: 'Accessible before retirement' }
   ];
 
   /* ---- Employer match -------------------------------------------------- */
@@ -300,6 +305,7 @@
     CASH_RATE: CASH_RATE,
     RMD_AGE: RMD_AGE,
     BUCKETS: BUCKETS,
+    BUCKET_GROUPS: BUCKET_GROUPS,
     employerMatch: employerMatch,
     preTaxContrib: preTaxContrib,
     taxSummary: taxSummary,

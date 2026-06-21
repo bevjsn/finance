@@ -57,23 +57,43 @@
     sel.disabled = cities.length === 0;
   }
 
+  function bucketRow(b) {
+    const v = state.buckets[b.key];
+    return '<div class="bucket-row" data-key="' + b.key + '">' +
+      '<label class="bucket-label">' + b.label + '</label>' +
+      '<div class="bucket-inputs">' +
+      '<div class="bucket-input balance">' +
+      '<span class="bucket-input-tag">Balance now</span>' +
+      '<div class="input-prefix sm"><span>$</span>' +
+      '<input type="number" class="num bucket-balance" data-key="' + b.key + '" value="' + v.balance + '" min="0" step="1000" aria-label="' + b.label + ' current balance"></div>' +
+      '</div>' +
+      '<div class="bucket-input contrib">' +
+      '<span class="bucket-input-tag">Adds / yr</span>' +
+      '<div class="input-prefix sm"><span>$</span>' +
+      '<input type="number" class="num bucket-contrib" data-key="' + b.key + '" value="' + v.contrib + '" min="0" step="500" aria-label="' + b.label + ' annual contribution"></div>' +
+      '</div>' +
+      '</div>' +
+      '<div class="warn" id="warn-' + b.key + '"></div>' +
+      '</div>';
+  }
+
   function buildBuckets() {
     const wrap = $('buckets-rows');
-    wrap.innerHTML = Calc.BUCKETS.map(function (b) {
-      const v = state.buckets[b.key];
-      return '<div class="bucket-row" data-key="' + b.key + '">' +
-        '<label class="bucket-label">' + b.label + '</label>' +
-        '<div class="bucket-inputs">' +
-        '<input type="number" class="num bucket-balance" data-key="' + b.key + '" value="' + v.balance + '" min="0" step="1000" aria-label="' + b.label + ' balance">' +
-        '<input type="number" class="num bucket-contrib" data-key="' + b.key + '" value="' + v.contrib + '" min="0" step="500" aria-label="' + b.label + ' contribution">' +
-        '</div>' +
-        '<div class="warn" id="warn-' + b.key + '"></div>' +
+    wrap.innerHTML = Calc.BUCKET_GROUPS.map(function (grp) {
+      const rows = Calc.BUCKETS.filter(function (b) { return b.group === grp.id; })
+        .map(bucketRow).join('');
+      return '<div class="bucket-group">' +
+        '<div class="bucket-group-head">' + grp.label +
+        '<span class="bucket-group-hint">' + grp.hint + '</span></div>' +
+        rows +
         '</div>';
     }).join('');
   }
 
   /* ---- Read inputs into state ------------------------------------------ */
   function readInputs() {
+    state.age = num($('input-age').value) || state.age;
+    state.retirementAge = num($('input-retire').value) || state.retirementAge;
     state.income = num($('input-income').value);
     state.filing = $('toggle-married').classList.contains('active') ? 'married' : 'single';
     state.state = $('input-state').value;
@@ -281,6 +301,9 @@
     $('onboard-build').addEventListener('click', function () {
       state.age = num($('onboard-age').value) || 32;
       state.retirementAge = num($('onboard-retire').value) || 62;
+      // sync the editable Profile fields so age can be changed later
+      $('input-age').value = state.age;
+      $('input-retire').value = state.retirementAge;
       $('onboard-modal').classList.add('hidden');
       renderAll();
     });
