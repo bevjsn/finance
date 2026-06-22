@@ -10,21 +10,100 @@
 </head>
 <body>
 
-  <!-- Onboarding modal -->
+  <!-- Onboarding wizard -->
   <div class="modal-overlay" id="onboard-modal">
-    <div class="modal">
-      <div class="modal-logo"><span class="logo-mark">W</span> WealthMD</div>
-      <h2>Let's build your plan</h2>
-      <p class="modal-sub">A financial roadmap built for physicians. Two quick questions to get started.</p>
-      <div class="modal-field">
-        <label>Current age</label>
-        <input type="number" id="onboard-age" value="32" min="18" max="80">
+    <div class="modal wizard">
+      <div class="wizard-head">
+        <div class="modal-logo"><span class="logo-mark">W</span> WealthMD</div>
+        <div class="wizard-progress"><div class="wizard-progress-bar" id="wiz-progress"></div></div>
+        <div class="wizard-step-count" id="wiz-step-count">Step 1 of 6</div>
       </div>
-      <div class="modal-field">
-        <label>Planned retirement age</label>
-        <input type="number" id="onboard-retire" value="62" min="40" max="80">
+
+      <div class="wizard-body">
+        <!-- Step 0: welcome -->
+        <div class="wizard-step active" data-step="0">
+          <h2>Welcome to WealthMD</h2>
+          <p class="modal-sub">A financial roadmap built for physicians. We'll ask a few quick questions to set up your plan — you can skip any of them and change everything later.</p>
+        </div>
+
+        <!-- Step 1: about you -->
+        <div class="wizard-step" data-step="1">
+          <h2>About you</h2>
+          <p class="modal-sub">When are you now, and when do you hope to retire?</p>
+          <div class="modal-field">
+            <label>Current age</label>
+            <input type="number" id="wiz-age" value="32" min="18" max="90">
+          </div>
+          <div class="modal-field">
+            <label>Planned retirement age</label>
+            <input type="number" id="wiz-retire" value="62" min="40" max="90">
+          </div>
+        </div>
+
+        <!-- Step 2: location -->
+        <div class="wizard-step" data-step="2">
+          <h2>Where do you practice?</h2>
+          <p class="modal-sub">State and city drive your tax picture.</p>
+          <div class="modal-field">
+            <label>State</label>
+            <select id="wiz-state"></select>
+          </div>
+          <div class="modal-field">
+            <label>City (local tax)</label>
+            <select id="wiz-city"></select>
+          </div>
+        </div>
+
+        <!-- Step 3: income -->
+        <div class="wizard-step" data-step="3">
+          <h2>Your income</h2>
+          <p class="modal-sub">Annual gross and how you file.</p>
+          <div class="modal-field">
+            <label>Annual gross income</label>
+            <div class="input-prefix"><span>$</span><input type="number" id="wiz-income" value="350000" min="0" step="5000"></div>
+          </div>
+          <div class="modal-field">
+            <label>Filing status</label>
+            <div class="seg-toggle">
+              <button type="button" id="wiz-single" class="seg active">Single</button>
+              <button type="button" id="wiz-married" class="seg">Married (MFJ)</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4: savings snapshot -->
+        <div class="wizard-step" data-step="4">
+          <h2>Savings snapshot</h2>
+          <p class="modal-sub">A rough starting point — fine-tune every bucket later in the sidebar.</p>
+          <div class="modal-field">
+            <label>Current 401k/403b balance</label>
+            <div class="input-prefix"><span>$</span><input type="number" id="wiz-bal" value="0" min="0" step="1000"></div>
+          </div>
+          <div class="modal-field">
+            <label>Annual 401k/403b contribution</label>
+            <div class="input-prefix"><span>$</span><input type="number" id="wiz-contrib" value="23500" min="0" step="500"></div>
+          </div>
+          <div class="modal-field">
+            <label>Emergency cash on hand</label>
+            <div class="input-prefix"><span>$</span><input type="number" id="wiz-cash" value="0" min="0" step="1000"></div>
+          </div>
+        </div>
+
+        <!-- Step 5: done -->
+        <div class="wizard-step" data-step="5">
+          <h2>You're all set 🎉</h2>
+          <p class="modal-sub">Here's what we'll start with — everything is editable from the sidebar.</p>
+          <div class="wizard-summary" id="wiz-summary"></div>
+        </div>
       </div>
-      <button class="btn-primary modal-btn" id="onboard-build">Build My Plan →</button>
+
+      <div class="wizard-foot">
+        <button type="button" class="wizard-skip" id="wiz-skip">Skip this step</button>
+        <div class="wizard-nav">
+          <button type="button" class="btn-ghost" id="wiz-back">← Back</button>
+          <button type="button" class="btn-primary" id="wiz-next">Next →</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -273,7 +352,12 @@
               </div>
             </div>
             <div class="chart-box" style="height:300px"><canvas id="chart-montecarlo"></canvas></div>
-            <p class="page-note">Each line is a percentile across 500 simulated return paths. P50 is the median outcome; the shaded band spans P10–P90.</p>
+            <div class="info-box">
+              <h4>What am I looking at?</h4>
+              <p>Markets don't return the same amount every year. This runs <strong>500 simulated futures</strong> for your portfolio, each year drawing a random return from a bell curve centered on your expected return (currently <strong id="mc-mean">7%</strong>) with <strong>±14% volatility</strong> — so some years boom, some crash.</p>
+              <p>Each line is a <strong>percentile</strong> of where you end up across all 500 runs. <strong>P50</strong> (the bold line) is the median — half the outcomes land above it, half below. The shaded band spans <strong>P10 to P90</strong>: a 10% chance you do worse than the bottom edge, a 10% chance you do better than the top. A wide band means more uncertainty.</p>
+              <p class="info-box-note">Contributions and loan payoff are applied each year; cash grows at a steady 4.5%. This is a projection, not a guarantee.</p>
+            </div>
           </div>
         </section>
 

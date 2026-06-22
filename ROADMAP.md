@@ -48,10 +48,11 @@ Top tab bar with pages:
 
 The input sidebar is shared across every tab.
 
-### Phase 2 — Onboarding wizard (next)
-Multi-step, skippable flow (age → retirement → location → income → filing →
-savings snapshot → reveal) with a progress bar, replacing the single modal.
-Reuses existing inputs and the persistence already in place.
+### Phase 2 — Onboarding wizard ✅ (shipped)
+Six-step, skippable flow (welcome → age → location → income/filing → savings
+snapshot → reveal) with a progress bar, replacing the single modal. Each input
+step can be skipped; values flow into the shared store and persist. Hosting:
+a GitHub Pages workflow publishes the static site for browser testing.
 
 ### Phase 3 — Generic retirement depth *(prioritized over physician modules)*
 - Decumulation / spend-down phase modeling

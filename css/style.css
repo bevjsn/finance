@@ -370,6 +370,60 @@ input[type="range"]::-moz-range-thumb {
 .modal-field label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
 .modal-btn { width: 100%; margin-top: 8px; }
 
+/* ---- Onboarding wizard ---- */
+.modal.wizard { width: 440px; padding: 26px 28px; }
+.wizard-head { margin-bottom: 18px; }
+.wizard-progress {
+  height: 6px; background: var(--bg); border-radius: 6px; overflow: hidden;
+  margin: 14px 0 8px;
+}
+.wizard-progress-bar {
+  height: 100%; width: 16%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  border-radius: 6px; transition: width .25s ease;
+}
+.wizard-step-count { font-size: 11px; color: var(--text-faint); font-weight: 600; }
+.wizard-body { min-height: 230px; }
+.wizard-step { display: none; }
+.wizard-step.active { display: block; animation: wizfade .2s ease; }
+@keyframes wizfade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.wizard-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--border);
+}
+.wizard-nav { display: flex; gap: 8px; }
+.wizard-skip {
+  background: none; border: none; color: var(--text-faint);
+  font-size: 12.5px; cursor: pointer; font-family: inherit; text-decoration: underline;
+}
+.wizard-skip:hover { color: var(--text-dim); }
+.wizard-summary {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 10px; padding: 6px 14px;
+}
+.wiz-summary-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 9px 0; font-size: 13px; border-bottom: 1px solid var(--border);
+}
+.wiz-summary-row:last-child { border-bottom: none; }
+.wiz-summary-row span { color: var(--text-dim); }
+.wiz-summary-row strong { color: var(--text); }
+
+/* ---- Info box (explanatory notes) ---- */
+.info-box {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 10px; padding: 14px 16px; margin-top: 16px;
+}
+.info-box h4 {
+  font-size: 12px; text-transform: uppercase; letter-spacing: .4px;
+  color: var(--accent); margin-bottom: 8px; font-weight: 600;
+}
+.info-box p { font-size: 13px; line-height: 1.55; color: var(--text-dim); margin-bottom: 8px; }
+.info-box p:last-child { margin-bottom: 0; }
+.info-box strong { color: var(--text); font-weight: 600; }
+.info-box-note { font-size: 12px !important; color: var(--text-faint) !important; font-style: italic; }
+
 /* ---- Print ---- */
 @media print {
   .topnav, .sidebar, .modal-overlay, .tabbar { display: none !important; }

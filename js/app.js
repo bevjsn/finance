@@ -107,9 +107,6 @@
     $('input-years').value = state.projection.years;
     $('return-val').textContent = state.projection.returnPct + '%';
     $('years-val').textContent = state.projection.years + ' yrs';
-
-    $('onboard-age').value = state.age;
-    $('onboard-retire').value = state.retirementAge;
   }
 
   /* ------------------------------------------------------------------ */
@@ -269,6 +266,8 @@
 
   let mcTimer = null;
   function renderMonteCarlo(d) {
+    const meanEl = $('mc-mean');
+    if (meanEl) meanEl.textContent = state.projection.returnPct + '%';
     if (mcTimer) clearTimeout(mcTimer);
     mcTimer = setTimeout(function () {
       const mc = Calc.monteCarlo(state, 500);
@@ -385,16 +384,125 @@
       tab.addEventListener('click', function () { document.body.classList.remove('sidebar-open'); });
     });
 
-    $('onboard-build').addEventListener('click', function () {
-      state.age = num($('onboard-age').value) || 32;
-      state.retirementAge = num($('onboard-retire').value) || 62;
-      state.onboarded = true;
-      $('input-age').value = state.age;
-      $('input-retire').value = state.retirementAge;
-      Persist.saveNow(Store.toPlan());
-      $('onboard-modal').classList.add('hidden');
-      renderActive();
+    wireWizard();
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Onboarding wizard                                                   */
+  /* ------------------------------------------------------------------ */
+  const WIZ_STEPS = 6;
+  let wizStep = 0;
+  let wizFiling = 'single';
+
+  function buildWizardOptions() {
+    const sel = $('wiz-state');
+    const codes = Object.keys(Taxes.STATES).sort(function (a, b) {
+      return Taxes.STATES[a].name.localeCompare(Taxes.STATES[b].name);
     });
+    sel.innerHTML = codes.map(function (c) {
+      return '<option value="' + c + '">' + Taxes.STATES[c].name + '</option>';
+    }).join('');
+    sel.value = state.state;
+    buildWizardCities();
+  }
+
+  function buildWizardCities() {
+    const sel = $('wiz-city');
+    const cities = Taxes.CITY_TAXES[$('wiz-state').value] || [];
+    let html = '<option value="">No local tax</option>';
+    html += cities.map(function (c) {
+      return '<option value="' + c.name + '">' + c.name + ' (' + (c.rate * 100).toFixed(2) + '%)</option>';
+    }).join('');
+    sel.innerHTML = html;
+    sel.disabled = cities.length === 0;
+  }
+
+  function prefillWizard() {
+    $('wiz-age').value = state.age;
+    $('wiz-retire').value = state.retirementAge;
+    $('wiz-income').value = state.income;
+    wizFiling = state.filing;
+    $('wiz-single').classList.toggle('active', wizFiling !== 'married');
+    $('wiz-married').classList.toggle('active', wizFiling === 'married');
+    $('wiz-bal').value = state.buckets.trad401k.balance;
+    $('wiz-contrib').value = state.buckets.trad401k.contrib;
+    $('wiz-cash').value = state.buckets.cash.balance;
+    buildWizardOptions();
+  }
+
+  function showWizStep(i) {
+    wizStep = Math.max(0, Math.min(WIZ_STEPS - 1, i));
+    document.querySelectorAll('.wizard-step').forEach(function (s) {
+      s.classList.toggle('active', Number(s.getAttribute('data-step')) === wizStep);
+    });
+    $('wiz-progress').style.width = Math.round((wizStep + 1) / WIZ_STEPS * 100) + '%';
+    $('wiz-step-count').textContent = 'Step ' + (wizStep + 1) + ' of ' + WIZ_STEPS;
+    $('wiz-back').style.visibility = wizStep === 0 ? 'hidden' : 'visible';
+    // Skip only on the input steps (1–4)
+    $('wiz-skip').style.visibility = (wizStep >= 1 && wizStep <= 4) ? 'visible' : 'hidden';
+    $('wiz-next').textContent = wizStep === WIZ_STEPS - 1 ? 'Build My Plan →' : 'Next →';
+    if (wizStep === WIZ_STEPS - 1) renderWizSummary();
+  }
+
+  function readWizStep(i) {
+    if (i === 1) {
+      state.age = num($('wiz-age').value) || state.age;
+      state.retirementAge = num($('wiz-retire').value) || state.retirementAge;
+    } else if (i === 2) {
+      state.state = $('wiz-state').value;
+      state.city = $('wiz-city').value;
+    } else if (i === 3) {
+      state.income = num($('wiz-income').value);
+      state.filing = wizFiling;
+    } else if (i === 4) {
+      state.buckets.trad401k.balance = num($('wiz-bal').value);
+      state.buckets.trad401k.contrib = num($('wiz-contrib').value);
+      state.buckets.cash.balance = num($('wiz-cash').value);
+    }
+  }
+
+  function renderWizSummary() {
+    const cityTxt = state.city ? ' · ' + state.city : '';
+    const rows = [
+      ['Age', state.age + ' → retire at ' + state.retirementAge],
+      ['Location', (Taxes.STATES[state.state] ? Taxes.STATES[state.state].name : state.state) + cityTxt],
+      ['Income', fmtMoney(state.income) + ' · ' + (state.filing === 'married' ? 'MFJ' : 'Single')],
+      ['401k balance', fmtMoney(state.buckets.trad401k.balance)],
+      ['401k / yr', fmtMoney(state.buckets.trad401k.contrib)],
+      ['Emergency cash', fmtMoney(state.buckets.cash.balance)]
+    ];
+    $('wiz-summary').innerHTML = rows.map(function (r) {
+      return '<div class="wiz-summary-row"><span>' + r[0] + '</span><strong>' + r[1] + '</strong></div>';
+    }).join('');
+  }
+
+  function finishWizard() {
+    state.onboarded = true;
+    syncSidebarFromState();
+    Persist.saveNow(Store.toPlan());
+    $('onboard-modal').classList.add('hidden');
+    renderActive();
+  }
+
+  function wireWizard() {
+    $('wiz-state').addEventListener('change', buildWizardCities);
+    $('wiz-single').addEventListener('click', function () {
+      wizFiling = 'single';
+      $('wiz-single').classList.add('active');
+      $('wiz-married').classList.remove('active');
+    });
+    $('wiz-married').addEventListener('click', function () {
+      wizFiling = 'married';
+      $('wiz-married').classList.add('active');
+      $('wiz-single').classList.remove('active');
+    });
+    $('wiz-next').addEventListener('click', function () {
+      readWizStep(wizStep);
+      if (wizStep === WIZ_STEPS - 1) finishWizard();
+      else showWizStep(wizStep + 1);
+    });
+    $('wiz-back').addEventListener('click', function () { showWizStep(wizStep - 1); });
+    $('wiz-skip').addEventListener('click', function () { showWizStep(wizStep + 1); });
   }
 
   function setFiling(f) {
@@ -423,9 +531,12 @@
 
     syncSidebarFromState();
     wire();
+    prefillWizard();
 
     if (state.onboarded) {
       $('onboard-modal').classList.add('hidden');
+    } else {
+      showWizStep(0);
     }
 
     Router.start({
