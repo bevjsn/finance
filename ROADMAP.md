@@ -52,7 +52,8 @@ The input sidebar is shared across every tab.
 Six-step, skippable flow (welcome → age → location → income/filing → savings
 snapshot → reveal) with a progress bar, replacing the single modal. Each input
 step can be skipped; values flow into the shared store and persist. Hosting:
-a GitHub Pages workflow publishes the static site for browser testing.
+GitHub Pages via "Deploy from a branch" (Settings → Pages) serves the static
+site at https://bevjsn.github.io/finance/ — no build step, no login to view.
 
 ### Phase 3 — Generic retirement depth *(prioritized over physician modules)*
 - Decumulation / spend-down phase modeling
