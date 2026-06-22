@@ -36,7 +36,15 @@
       return '<option value="' + c.name + '"' + (c.name === selected ? ' selected' : '') +
         '>' + c.name + ' (' + (c.rate * 100).toFixed(2) + '%)</option>';
     }).join('');
-    return { html: html, count: cities.length };
+    const anyTaxed = cities.some(function (c) { return c.rate > 0; });
+    return { html: html, count: cities.length, anyTaxed: anyTaxed };
+  }
+
+  function cityHintText(out) {
+    if (out.count === 0) return 'No local income tax in this state.';
+    if (!out.anyTaxed) return 'No local personal income tax in this state — cities listed at 0% for reference.';
+    return out.count + ' local-tax jurisdiction' + (out.count === 1 ? '' : 's') +
+      ' — only cities/counties that levy a local income tax are listed.';
   }
 
   function buildCityOptions() {
@@ -46,11 +54,7 @@
     sel.disabled = out.count === 0;
     sel.value = state.city || '';
     const hint = $('city-hint');
-    if (hint) {
-      hint.textContent = out.count === 0
-        ? 'No local income tax in this state.'
-        : out.count + ' local-tax jurisdiction' + (out.count === 1 ? '' : 's') + ' — only cities/counties that levy a local income tax are listed.';
-    }
+    if (hint) hint.textContent = cityHintText(out);
   }
 
   function bucketRow(b) {
@@ -427,11 +431,7 @@
     sel.innerHTML = out.html;
     sel.disabled = out.count === 0;
     const hint = $('wiz-city-hint');
-    if (hint) {
-      hint.textContent = out.count === 0
-        ? 'No local income tax in this state.'
-        : out.count + ' local-tax jurisdiction' + (out.count === 1 ? '' : 's') + ' listed (only places that levy one).';
-    }
+    if (hint) hint.textContent = cityHintText(out);
   }
 
   function buildWizardBuckets() {

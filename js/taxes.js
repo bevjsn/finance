@@ -162,6 +162,21 @@
       { name: 'Gadsden', rate: 0.02 }, { name: 'Attalla', rate: 0.02 },
       { name: 'Macon County', rate: 0.01 }, { name: 'Midfield', rate: 0.01 }
     ],
+    CA: [
+      // California levies NO local personal income tax — listed at 0% for reference.
+      { name: 'Los Angeles', rate: 0 }, { name: 'San Diego', rate: 0 },
+      { name: 'San Jose', rate: 0 }, { name: 'San Francisco', rate: 0 },
+      { name: 'Fresno', rate: 0 }, { name: 'Sacramento', rate: 0 },
+      { name: 'Long Beach', rate: 0 }, { name: 'Oakland', rate: 0 },
+      { name: 'Bakersfield', rate: 0 }, { name: 'Anaheim', rate: 0 },
+      { name: 'Santa Ana', rate: 0 }, { name: 'Riverside', rate: 0 },
+      { name: 'Stockton', rate: 0 }, { name: 'Irvine', rate: 0 },
+      { name: 'Chula Vista', rate: 0 }, { name: 'Fremont', rate: 0 },
+      { name: 'San Bernardino', rate: 0 }, { name: 'Modesto', rate: 0 },
+      { name: 'Glendale', rate: 0 }, { name: 'Pasadena', rate: 0 },
+      { name: 'Berkeley', rate: 0 }, { name: 'Palo Alto', rate: 0 },
+      { name: 'Santa Rosa', rate: 0 }, { name: 'Oxnard', rate: 0 }
+    ],
     DE: [
       { name: 'Wilmington', rate: 0.0125 }
     ],
