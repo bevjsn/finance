@@ -8,6 +8,7 @@
   'use strict';
 
   const PLAN_KEY = 'wealthmd_plan';
+  const SCENARIO_KEY = 'wealthmd_scenarios';
   const OLD_ONBOARD_KEY = 'wealthmd_onboard';   // pre-Phase-0 key, migrated on load
   const VERSION = 1;
   const SAVE_DEBOUNCE = 400;
@@ -75,6 +76,33 @@
         localStorage.removeItem(PLAN_KEY);
         localStorage.removeItem(OLD_ONBOARD_KEY);
       } catch (e) { /* ignore */ }
+    },
+
+    /* ---- Named scenarios (save / list / delete) ---- */
+    listScenarios: function () {
+      if (!this.available) return [];
+      try {
+        const raw = localStorage.getItem(SCENARIO_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) { return []; }
+    },
+    saveScenario: function (name, plan) {
+      if (!this.available) return null;
+      const list = this.listScenarios();
+      const entry = {
+        id: 'sc_' + Date.now().toString(36),
+        name: name || 'Untitled',
+        savedAt: Date.now(),
+        plan: plan
+      };
+      list.push(entry);
+      try { localStorage.setItem(SCENARIO_KEY, JSON.stringify(list)); } catch (e) { /* ignore */ }
+      return entry;
+    },
+    deleteScenario: function (id) {
+      if (!this.available) return;
+      const list = this.listScenarios().filter(function (s) { return s.id !== id; });
+      try { localStorage.setItem(SCENARIO_KEY, JSON.stringify(list)); } catch (e) { /* ignore */ }
     }
   };
 
@@ -86,7 +114,10 @@
     save: function (plan) { return this.adapter.save(plan); },
     saveNow: function (plan) { return this.adapter.saveNow(plan); },
     load: function () { return this.adapter.load(); },
-    clear: function () { return this.adapter.clear(); }
+    clear: function () { return this.adapter.clear(); },
+    listScenarios: function () { return this.adapter.listScenarios(); },
+    saveScenario: function (name, plan) { return this.adapter.saveScenario(name, plan); },
+    deleteScenario: function (id) { return this.adapter.deleteScenario(id); }
   };
 
   global.Persist = Persist;

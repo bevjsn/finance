@@ -386,6 +386,30 @@
     return c;
   }
 
+  /* Fund one retirement year: solve the gross withdrawal (incl. taxes) needed to
+   * cover spending after Social Security, honoring the RMD minimum. Mutates bal,
+   * reinvests any surplus into taxable, and returns {tax, withdrawal, shortfall}. */
+  function fundRetirementYear(bal, spendingNeed, ss, rmd, filing, stateCode, city) {
+    const ssOrdinary = 0.85 * ss;
+    let target = Math.max(0, spendingNeed - ss);
+    let res = null;
+    for (let it = 0; it < 6; it++) {
+      res = pullFunds(cloneBalances(bal), target, rmd);
+      const t = retirementOrdinaryTax(res.ordinary + ssOrdinary, filing, stateCode, city) +
+        res.gains * CAPGAINS_EFFECTIVE;
+      const spendable = ss + res.withdrawn - t;
+      const gap = spendingNeed - spendable;
+      if (gap <= 1 || res.shortfall > 0) break;
+      target += gap;
+    }
+    res = pullFunds(bal, target, rmd);
+    const tax = retirementOrdinaryTax(res.ordinary + ssOrdinary, filing, stateCode, city) +
+      res.gains * CAPGAINS_EFFECTIVE;
+    const surplus = (ss + res.withdrawn - tax) - spendingNeed;
+    if (surplus > 0) bal.taxable += surplus;
+    return { tax: tax, withdrawal: res.withdrawn, shortfall: res.shortfall };
+  }
+
   /* Full lifecycle projection: accumulate to retirement, then draw down to
    * the plan-to age. Returns yearly rows + a readiness summary. */
   function retirementProjection(state) {
@@ -456,34 +480,11 @@
         spendingNeed = baseSpending * Math.pow(1 + infl, yearIndex);
         ss = (age >= claimAge) ? ssAnnual * Math.pow(1 + infl, yearIndex) : 0;
         const rmd = (age >= 73) ? (bal.trad401k + bal.plan457) / rmdDivisor(age) : 0;
-        const ssOrdinary = 0.85 * ss;
-
-        // Solve gross withdrawal so that (ss + withdrawn - tax) covers spendingNeed.
-        let target = Math.max(0, spendingNeed - ss);
-        let res = null;
-        for (let it = 0; it < 6; it++) {
-          res = pullFunds(cloneBalances(bal), target, rmd);
-          const t = retirementOrdinaryTax(res.ordinary + ssOrdinary, filing, stateCode, city) +
-            res.gains * CAPGAINS_EFFECTIVE;
-          const spendable = ss + res.withdrawn - t;
-          const gap = spendingNeed - spendable;
-          res.tax = t;
-          if (gap <= 1 || res.shortfall > 0) break;
-          target += gap;
-        }
-        // apply for real
-        res = pullFunds(bal, target, rmd);
-        tax = retirementOrdinaryTax(res.ordinary + ssOrdinary, filing, stateCode, city) +
-          res.gains * CAPGAINS_EFFECTIVE;
-        withdrawal = res.withdrawn;
+        const flow = fundRetirementYear(bal, spendingNeed, ss, rmd, filing, stateCode, city);
+        tax = flow.tax;
+        withdrawal = flow.withdrawal;
         lifetimeTax += tax;
-
-        // reinvest any surplus (e.g. forced RMD beyond need) into taxable
-        const spendable = ss + withdrawal - tax;
-        const surplus = spendable - spendingNeed;
-        if (surplus > 0) bal.taxable += surplus;
-
-        if (res.shortfall > 0 && depleteAge === null) depleteAge = age;
+        if (flow.shortfall > 0 && depleteAge === null) depleteAge = age;
       }
 
       // loan amortization
@@ -531,6 +532,67 @@
     });
   }
 
+  /* Lean lifecycle sim used by the success score: returns only whether the plan
+   * depleted and the ending assets. `drawReturn()` supplies each year's return. */
+  function simulateLifecycle(state, drawReturn) {
+    const ret = state.retirement || {};
+    const startAge = state.age, retAge = state.retirementAge;
+    const endAge = Math.max(retAge + 1, Math.min(100, Math.round(ret.planToAge || 95)));
+    const infl = (ret.inflation || 2.5) / 100;
+    const match = employerMatch(state);
+    const filing = state.filing, stateCode = state.state, city = state.city;
+    const contrib = {}; BUCKETS.forEach(function (b) { contrib[b.key] = Math.max(0, state.buckets[b.key].contrib || 0); });
+    const bal = {}; BUCKETS.forEach(function (b) { bal[b.key] = Math.max(0, state.buckets[b.key].balance || 0); });
+    const baseSpending = Math.max(0, ret.spending || 0);
+    const claimAge = ret.ssClaimAge || 67;
+    const ssAnnual = Math.max(0, ret.ssAnnual || 0) * ssFactor(claimAge);
+    let depleted = false;
+
+    for (let age = startAge + 1; age <= endAge; age++) {
+      const yearIndex = age - startAge;
+      const mret = drawReturn();
+      BUCKETS.forEach(function (b) {
+        const g = b.growth === 'cash' ? CASH_RATE : mret;
+        bal[b.key] = Math.max(0, bal[b.key] * (1 + g));
+      });
+      if (age < retAge) {
+        BUCKETS.forEach(function (b) { bal[b.key] += contrib[b.key]; });
+        bal.trad401k += match;
+      } else {
+        const spendingNeed = baseSpending * Math.pow(1 + infl, yearIndex);
+        const ss = (age >= claimAge) ? ssAnnual * Math.pow(1 + infl, yearIndex) : 0;
+        const rmd = (age >= 73) ? (bal.trad401k + bal.plan457) / rmdDivisor(age) : 0;
+        const flow = fundRetirementYear(bal, spendingNeed, ss, rmd, filing, stateCode, city);
+        if (flow.shortfall > 0) depleted = true;
+      }
+    }
+    let ending = 0; BUCKETS.forEach(function (b) { ending += bal[b.key]; });
+    return { depleted: depleted, endingAssets: ending };
+  }
+
+  /* "Chance of success": fraction of simulated futures in which the plan never
+   * runs out of money before the plan-to age. */
+  function successScore(state, runsArg) {
+    const runs = runsArg || 400;
+    const mean = (state.projection.returnPct || 0) / 100;
+    const stdDev = 0.14;
+    let lasted = 0;
+    const endings = [];
+    for (let run = 0; run < runs; run++) {
+      const res = simulateLifecycle(state, function () { return mean + stdDev * randNormal(); });
+      if (!res.depleted) lasted++;
+      endings.push(res.endingAssets);
+    }
+    endings.sort(function (a, b) { return a - b; });
+    return {
+      successRate: lasted / runs,
+      runs: runs,
+      medianEnding: percentile(endings, 0.5),
+      p10Ending: percentile(endings, 0.10),
+      p90Ending: percentile(endings, 0.90)
+    };
+  }
+
   global.Calc = {
     LIMITS: LIMITS,
     CASH_RATE: CASH_RATE,
@@ -549,6 +611,7 @@
     rmdDivisor: rmdDivisor,
     ssFactor: ssFactor,
     retirementProjection: retirementProjection,
-    socialSecurity: socialSecurity
+    socialSecurity: socialSecurity,
+    successScore: successScore
   };
 })(typeof window !== 'undefined' ? window : this);

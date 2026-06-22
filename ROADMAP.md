@@ -67,9 +67,16 @@ site at https://bevjsn.github.io/finance/ — no build step, no login to view.
   *Approximations: capital-gains tax modeled as a flat effective drag; Social
   Security taxed at 85%; figures for planning, not filing.*
 
-### Phase 4 — Scenarios & success score
-Named plans (save / duplicate / compare two side by side) and a headline
-"probability of success %" derived from the Monte Carlo engine.
+### Phase 4 — Scenarios & success score ✅ (shipped)
+- **Chance of success** headline on the Overview: runs 400 full-lifecycle market
+  simulations and reports the % in which the plan never runs out of money. Makes
+  sequence-of-returns risk visible (and clarifies why the steady-return drawdown
+  view looks rosier).
+- **Scenarios tab**: name and save the current plan, see saved scenarios with
+  key stats, load or delete them, and compare any two side by side (net worth,
+  success %, money-lasts, taxes, take-home). Stored locally per browser.
+- All five **federal filing statuses** now supported (Single, MFJ, MFS, Head of
+  Household, Qualifying Surviving Spouse) across the tax engine and UI.
 
 ### Phase 5 — Cloud accounts (login) *(committed)*
 Supabase adapter behind the Phase 0 persist interface + auth → cross-device

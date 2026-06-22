@@ -65,10 +65,13 @@
           </div>
           <div class="modal-field">
             <label>Filing status</label>
-            <div class="seg-toggle">
-              <button type="button" id="wiz-single" class="seg active">Single</button>
-              <button type="button" id="wiz-married" class="seg">Married (MFJ)</button>
-            </div>
+            <select id="wiz-filing">
+              <option value="single">Single</option>
+              <option value="married">Married filing jointly</option>
+              <option value="mfs">Married filing separately</option>
+              <option value="hoh">Head of household</option>
+              <option value="qss">Qualifying surviving spouse</option>
+            </select>
           </div>
         </div>
 
@@ -172,10 +175,13 @@
         </div>
         <div class="field">
           <label>Filing status</label>
-          <div class="seg-toggle">
-            <button id="toggle-single" class="seg active">Single</button>
-            <button id="toggle-married" class="seg">Married (MFJ)</button>
-          </div>
+          <select id="input-filing">
+            <option value="single">Single</option>
+            <option value="married">Married filing jointly</option>
+            <option value="mfs">Married filing separately</option>
+            <option value="hoh">Head of household</option>
+            <option value="qss">Qualifying surviving spouse</option>
+          </select>
         </div>
         <div class="field">
           <label>State</label>
@@ -308,12 +314,25 @@
         <a class="tab" data-route="/retirement" href="#/retirement">Retirement</a>
         <a class="tab" data-route="/montecarlo" href="#/montecarlo">Monte Carlo</a>
         <a class="tab" data-route="/loans" href="#/loans">Student Loans</a>
+        <a class="tab" data-route="/scenarios" href="#/scenarios">Scenarios</a>
       </nav>
 
       <main class="main" id="main">
 
         <!-- ===== Overview ===== -->
         <section class="page" data-page="overview">
+          <div class="panel success-panel">
+            <div class="success-gauge">
+              <div class="success-pct" id="success-pct">—</div>
+              <div class="success-cap">success</div>
+            </div>
+            <div class="success-body">
+              <div class="success-title">Chance your money lasts to age <span id="success-age">95</span></div>
+              <div class="success-bar"><div class="success-bar-fill" id="success-bar"></div></div>
+              <div class="success-note" id="success-note">Running 400 market simulations…</div>
+            </div>
+          </div>
+
           <div class="kpi-row">
             <div class="kpi-card">
               <div class="kpi-label">Annual Take-Home</div>
@@ -443,6 +462,33 @@
             <div class="panel-head"><h3>Student Loan Summary</h3></div>
             <div class="stat-grid" id="loan-summary"></div>
             <p class="page-note">Edit your loan balance, rate, and payment in the sidebar. Deeper strategies (PSLF, refinance vs. IDR) are coming in a later release.</p>
+          </div>
+        </section>
+
+        <!-- ===== Scenarios ===== -->
+        <section class="page" data-page="scenarios">
+          <div class="panel">
+            <div class="panel-head"><h3>Save Current Plan as a Scenario</h3></div>
+            <div class="scenario-save">
+              <input type="text" id="scenario-name" placeholder="Name it — e.g. Retire at 60 in Texas">
+              <button class="btn-primary" id="scenario-save-btn">Save Scenario</button>
+            </div>
+            <p class="page-note">Snapshots are saved in this browser so you can revisit or compare different what-ifs.</p>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><h3>Saved Scenarios</h3></div>
+            <div id="scenario-list"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><h3>Compare Two Plans</h3></div>
+            <div class="compare-controls">
+              <select id="compare-a"></select>
+              <span class="compare-vs">vs</span>
+              <select id="compare-b"></select>
+            </div>
+            <div id="compare-table"></div>
           </div>
         </section>
 

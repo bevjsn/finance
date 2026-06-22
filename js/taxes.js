@@ -27,10 +27,32 @@
       { rate: 0.32, upTo: 501050 },
       { rate: 0.35, upTo: 751600 },
       { rate: 0.37, upTo: Infinity }
+    ],
+    // Married filing separately — mirrors single except the top bracket.
+    mfs: [
+      { rate: 0.10, upTo: 11925 },
+      { rate: 0.12, upTo: 48475 },
+      { rate: 0.22, upTo: 103350 },
+      { rate: 0.24, upTo: 197300 },
+      { rate: 0.32, upTo: 250525 },
+      { rate: 0.35, upTo: 375800 },
+      { rate: 0.37, upTo: Infinity }
+    ],
+    // Head of household
+    hoh: [
+      { rate: 0.10, upTo: 17000 },
+      { rate: 0.12, upTo: 64850 },
+      { rate: 0.22, upTo: 103350 },
+      { rate: 0.24, upTo: 197300 },
+      { rate: 0.32, upTo: 250500 },
+      { rate: 0.35, upTo: 626350 },
+      { rate: 0.37, upTo: Infinity }
     ]
   };
+  // Qualifying surviving spouse uses the MFJ schedule.
+  FEDERAL_BRACKETS.qss = FEDERAL_BRACKETS.married;
 
-  const STANDARD_DEDUCTION = { single: 15000, married: 30000 };
+  const STANDARD_DEDUCTION = { single: 15000, married: 30000, mfs: 15000, hoh: 22500, qss: 30000 };
 
   /* FICA constants (2025) */
   const FICA = {
@@ -38,7 +60,7 @@
     ssWageBase: 176100,
     medicareRate: 0.0145,
     addlMedicareRate: 0.009,
-    addlMedicareThreshold: { single: 200000, married: 250000 }
+    addlMedicareThreshold: { single: 200000, married: 250000, mfs: 125000, hoh: 200000, qss: 250000 }
   };
 
   /* SALT cap and medical AGI floor for itemized deductions */
@@ -290,8 +312,17 @@
     return rate;
   }
 
+  const FILING_STATUSES = ['single', 'married', 'mfs', 'hoh', 'qss'];
+  function normalizeFiling(filing) {
+    return FILING_STATUSES.indexOf(filing) >= 0 ? filing : 'single';
+  }
+  // States that double single brackets for joint filers — applies to MFJ & QSS.
+  function usesJointBrackets(filing) {
+    return filing === 'married' || filing === 'qss';
+  }
+
   function getFederalBrackets(filing) {
-    return filing === 'married' ? FEDERAL_BRACKETS.married : FEDERAL_BRACKETS.single;
+    return FEDERAL_BRACKETS[normalizeFiling(filing)] || FEDERAL_BRACKETS.single;
   }
 
   /* Compute itemized deduction total */
@@ -340,7 +371,7 @@
     if (st.type === 'flat') return Math.max(0, taxableIncome) * st.rate;
     // graduated
     let brackets = st.brackets;
-    if (filing === 'married' && st.mfjDouble) {
+    if (usesJointBrackets(filing) && st.mfjDouble) {
       brackets = brackets.map(function (b) {
         return { rate: b.rate, upTo: b.upTo === Infinity ? Infinity : b.upTo * 2 };
       });
@@ -361,7 +392,7 @@
    */
   function computeTaxes(opts) {
     const gross = Math.max(0, opts.gross || 0);
-    const filing = opts.filing === 'married' ? 'married' : 'single';
+    const filing = normalizeFiling(opts.filing);
     const preTax = Math.max(0, opts.preTax || 0);
     const stateCode = opts.state || 'CA';
     const cityName = opts.city || '';
@@ -399,8 +430,20 @@
     return marginalRate(Math.max(0, taxableIncome), getFederalBrackets(filing));
   }
 
+  const FILING_LABELS = {
+    single: 'Single',
+    married: 'Married filing jointly',
+    mfs: 'Married filing separately',
+    hoh: 'Head of household',
+    qss: 'Qualifying surviving spouse'
+  };
+  const FILING_SHORT = { single: 'Single', married: 'MFJ', mfs: 'MFS', hoh: 'HoH', qss: 'QSS' };
+
   global.Taxes = {
     FEDERAL_BRACKETS: FEDERAL_BRACKETS,
+    FILING_STATUSES: FILING_STATUSES,
+    FILING_LABELS: FILING_LABELS,
+    FILING_SHORT: FILING_SHORT,
     STANDARD_DEDUCTION: STANDARD_DEDUCTION,
     FICA: FICA,
     SALT_CAP: SALT_CAP,

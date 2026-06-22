@@ -97,10 +97,7 @@
     $('input-age').value = state.age;
     $('input-retire').value = state.retirementAge;
     $('input-income').value = state.income;
-
-    $('toggle-single').classList.toggle('active', state.filing !== 'married');
-    $('toggle-married').classList.toggle('active', state.filing === 'married');
-
+    $('input-filing').value = state.filing;
     $('input-state').value = state.state;
     buildCityOptions();
 
@@ -144,7 +141,7 @@
     state.age = num($('input-age').value) || state.age;
     state.retirementAge = num($('input-retire').value) || state.retirementAge;
     state.income = num($('input-income').value);
-    state.filing = $('toggle-married').classList.contains('active') ? 'married' : 'single';
+    state.filing = $('input-filing').value;
     state.state = $('input-state').value;
     state.city = $('input-city').value;
 
@@ -231,6 +228,28 @@
 
     Charts.netWorth('chart-networth', d.proj, d.retIndex);
     Charts.cashFlow('chart-cashflow', d.flow);
+    renderSuccess();
+  }
+
+  let successTimer = null;
+  function renderSuccess() {
+    const endAge = Math.max(state.retirementAge + 1, Math.min(100, Math.round(state.retirement.planToAge)));
+    $('success-age').textContent = endAge;
+    $('success-note').textContent = 'Running 400 market simulations…';
+    if (successTimer) clearTimeout(successTimer);
+    successTimer = setTimeout(function () {
+      const sc = Calc.successScore(state, 400);
+      const pct = Math.round(sc.successRate * 100);
+      const tier = pct >= 80 ? 'good' : (pct >= 50 ? 'mid' : 'bad');
+      $('success-pct').textContent = pct + '%';
+      $('success-pct').className = 'success-pct ' + tier;
+      const bar = $('success-bar');
+      bar.style.width = pct + '%';
+      bar.className = 'success-bar-fill ' + tier;
+      $('success-note').textContent = 'Across ' + sc.runs + ' simulated market histories your money survives in ' +
+        pct + '% of them (median ending balance ' + fmtMoney(sc.medianEnding) +
+        '). This accounts for market ups and downs — the Retirement tab’s drawdown assumes a steady return, so it looks rosier.';
+    }, 400);
   }
 
   function renderTaxes(d) {
@@ -392,12 +411,119 @@
     };
   }
 
+  /* ---- Scenarios (Phase 4) -------------------------------------------- */
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+  function deepAssign(target, src) {
+    if (!src || typeof src !== 'object') return target;
+    Object.keys(src).forEach(function (k) {
+      const sv = src[k];
+      if (sv && typeof sv === 'object' && !Array.isArray(sv) && target[k] && typeof target[k] === 'object') {
+        deepAssign(target[k], sv);
+      } else if (sv !== undefined) {
+        target[k] = sv;
+      }
+    });
+    return target;
+  }
+  function fillDefaults(plan) { return deepAssign(Store.getDefault(), plan); }
+
+  function planMetrics(plan, withSuccess) {
+    const full = fillDefaults(plan);
+    const proj = Calc.project(full);
+    const rp = Calc.retirementProjection(full);
+    const m = {
+      networth: proj.finalNetWorth,
+      effRate: proj.tax.effectiveRate,
+      takeHome: proj.tax.takeHome,
+      lasts: rp.lastsToPlan, depleteAge: rp.depleteAge, endAge: rp.endAge,
+      retAssets: rp.retirementAssets, lifetimeTax: rp.lifetimeTax
+    };
+    if (withSuccess) m.success = Calc.successScore(full, 250).successRate;
+    return m;
+  }
+
+  function populateCompareSelects(list) {
+    const opts = '<option value="current">Current plan</option>' +
+      list.map(function (s) { return '<option value="' + s.id + '">' + esc(s.name) + '</option>'; }).join('');
+    ['compare-a', 'compare-b'].forEach(function (id) {
+      const sel = $(id); const prev = sel.value; sel.innerHTML = opts;
+      if (prev && Array.prototype.some.call(sel.options, function (o) { return o.value === prev; })) sel.value = prev;
+    });
+    if (!$('compare-a').value) $('compare-a').value = 'current';
+    if (!$('compare-b').value) $('compare-b').value = list.length ? list[0].id : 'current';
+  }
+
+  function renderScenariosList() {
+    const list = Persist.listScenarios();
+    const el = $('scenario-list');
+    if (!list.length) {
+      el.innerHTML = '<div class="empty-note">No saved scenarios yet — name one above and hit Save.</div>';
+    } else {
+      el.innerHTML = list.map(function (s) {
+        const m = planMetrics(s.plan, false);
+        const lasts = m.lasts ? ('lasts to ' + m.endAge) : ('depletes at ' + m.depleteAge);
+        return '<div class="scenario-item">' +
+          '<div class="scenario-meta"><div class="scenario-name">' + esc(s.name) + '</div>' +
+          '<div class="scenario-stats">Net worth ' + fmtMoney(m.networth) + ' · ' + lasts + ' · ' + fmtPct(m.effRate) + ' eff. tax</div></div>' +
+          '<div class="scenario-actions">' +
+          '<button class="btn-ghost sc-load" data-id="' + s.id + '">Load</button>' +
+          '<button class="btn-ghost sc-del" data-id="' + s.id + '">Delete</button>' +
+          '</div></div>';
+      }).join('');
+    }
+    populateCompareSelects(list);
+  }
+
+  function renderCompare() {
+    const list = Persist.listScenarios();
+    function planFor(v) {
+      if (v === 'current') return Store.toPlan();
+      const s = list.find(function (x) { return x.id === v; });
+      return s ? s.plan : null;
+    }
+    const aPlan = planFor($('compare-a').value);
+    const bPlan = planFor($('compare-b').value);
+    const out = $('compare-table');
+    if (!aPlan || !bPlan) { out.innerHTML = '<div class="empty-note">Save a scenario to compare against your current plan.</div>'; return; }
+    out.innerHTML = '<div class="empty-note">Crunching simulations…</div>';
+    // defer so the "crunching" note paints before the heavy work
+    setTimeout(function () {
+      const A = planMetrics(aPlan, true), B = planMetrics(bPlan, true);
+      const nameA = $('compare-a').selectedOptions[0].text, nameB = $('compare-b').selectedOptions[0].text;
+      const rows = [
+        ['Projected net worth', fmtMoney(A.networth), fmtMoney(B.networth)],
+        ['Chance of success', fmtPct(A.success), fmtPct(B.success)],
+        ['Money', A.lasts ? ('lasts to ' + A.endAge) : ('depletes ' + A.depleteAge), B.lasts ? ('lasts to ' + B.endAge) : ('depletes ' + B.depleteAge)],
+        ['Assets at retirement', fmtMoney(A.retAssets), fmtMoney(B.retAssets)],
+        ['Effective tax rate', fmtPct(A.effRate), fmtPct(B.effRate)],
+        ['Annual take-home', fmtMoney(A.takeHome), fmtMoney(B.takeHome)],
+        ['Lifetime retirement tax', fmtMoney(A.lifetimeTax), fmtMoney(B.lifetimeTax)]
+      ];
+      out.innerHTML = '<table class="compare-tbl"><thead><tr><th></th><th>' + esc(nameA) + '</th><th>' + esc(nameB) +
+        '</th></tr></thead><tbody>' +
+        rows.map(function (r) { return '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td><td>' + r[2] + '</td></tr>'; }).join('') +
+        '</tbody></table>';
+    }, 20);
+  }
+
+  function loadScenario(plan) {
+    Store.hydrate(plan);
+    syncSidebarFromState();
+    Persist.save(Store.toPlan());
+    renderActive();
+  }
+
   const pages = {
     overview: renderOverview,
     taxes: renderTaxes,
     retirement: renderRetirement,
     montecarlo: renderMonteCarlo,
-    loans: renderLoans
+    loans: renderLoans,
+    scenarios: renderScenariosList
   };
 
   /* Read inputs, persist, render sidebar bits + the active page only. */
@@ -422,8 +548,6 @@
       el.addEventListener('change', function () { renderActive(); });
     });
 
-    $('toggle-single').addEventListener('click', function () { setFiling('single'); });
-    $('toggle-married').addEventListener('click', function () { setFiling('married'); });
     $('ded-standard').addEventListener('click', function () { setDeduction('standard'); });
     $('ded-itemize').addEventListener('click', function () { setDeduction('itemize'); });
 
@@ -446,6 +570,29 @@
       tab.addEventListener('click', function () { document.body.classList.remove('sidebar-open'); });
     });
 
+    // scenarios
+    $('scenario-save-btn').addEventListener('click', function () {
+      const name = $('scenario-name').value.trim() || ('Plan ' + new Date().toLocaleDateString());
+      Persist.saveScenario(name, Store.toPlan());
+      $('scenario-name').value = '';
+      renderScenariosList();
+      renderCompare();
+    });
+    $('compare-a').addEventListener('change', renderCompare);
+    $('compare-b').addEventListener('change', renderCompare);
+    $('scenario-list').addEventListener('click', function (e) {
+      const load = e.target.closest('.sc-load');
+      const del = e.target.closest('.sc-del');
+      if (load) {
+        const s = Persist.listScenarios().find(function (x) { return x.id === load.dataset.id; });
+        if (s) loadScenario(s.plan);
+      } else if (del) {
+        Persist.deleteScenario(del.dataset.id);
+        renderScenariosList();
+        renderCompare();
+      }
+    });
+
     wireWizard();
   }
 
@@ -455,7 +602,6 @@
   const WIZ_STEPS = 8;
   const WIZ_SKIPPABLE = { 1: true, 2: true, 3: true, 4: true, 5: true, 6: true };
   let wizStep = 0;
-  let wizFiling = 'single';
 
   function buildWizardOptions() {
     const sel = $('wiz-state');
@@ -502,9 +648,7 @@
     $('wiz-age').value = state.age;
     $('wiz-retire').value = state.retirementAge;
     $('wiz-income').value = state.income;
-    wizFiling = state.filing;
-    $('wiz-single').classList.toggle('active', wizFiling !== 'married');
-    $('wiz-married').classList.toggle('active', wizFiling === 'married');
+    $('wiz-filing').value = state.filing;
     $('wiz-match-toggle').checked = !!state.match.enabled;
     $('wiz-match-rate').value = state.match.rateCents;
     $('wiz-match-cap').value = state.match.capPct;
@@ -538,7 +682,7 @@
       state.city = $('wiz-city').value;
     } else if (i === 3) {
       state.income = num($('wiz-income').value);
-      state.filing = wizFiling;
+      state.filing = $('wiz-filing').value;
     } else if (i === 4) {
       state.match.enabled = $('wiz-match-toggle').checked;
       state.match.rateCents = num($('wiz-match-rate').value);
@@ -565,7 +709,7 @@
     const rows = [
       ['Age', state.age + ' → retire at ' + state.retirementAge],
       ['Location', (Taxes.STATES[state.state] ? Taxes.STATES[state.state].name : state.state) + cityTxt],
-      ['Income', fmtMoney(state.income) + ' · ' + (state.filing === 'married' ? 'MFJ' : 'Single')],
+      ['Income', fmtMoney(state.income) + ' · ' + (Taxes.FILING_SHORT[state.filing] || 'Single')],
       ['Employer match', state.match.enabled ? (state.match.rateCents + '¢/$ up to ' + state.match.capPct + '%') : 'None'],
       ['Total balances', fmtMoney(totalBal)],
       ['Saved per year', fmtMoney(totalContrib)],
@@ -586,16 +730,6 @@
 
   function wireWizard() {
     $('wiz-state').addEventListener('change', buildWizardCities);
-    $('wiz-single').addEventListener('click', function () {
-      wizFiling = 'single';
-      $('wiz-single').classList.add('active');
-      $('wiz-married').classList.remove('active');
-    });
-    $('wiz-married').addEventListener('click', function () {
-      wizFiling = 'married';
-      $('wiz-married').classList.add('active');
-      $('wiz-single').classList.remove('active');
-    });
     $('wiz-next').addEventListener('click', function () {
       readWizStep(wizStep);
       if (wizStep === WIZ_STEPS - 1) finishWizard();
@@ -603,13 +737,6 @@
     });
     $('wiz-back').addEventListener('click', function () { showWizStep(wizStep - 1); });
     $('wiz-skip').addEventListener('click', function () { showWizStep(wizStep + 1); });
-  }
-
-  function setFiling(f) {
-    state.filing = f;
-    $('toggle-single').classList.toggle('active', f === 'single');
-    $('toggle-married').classList.toggle('active', f === 'married');
-    renderActive();
   }
 
   function setDeduction(mode) {
@@ -644,10 +771,13 @@
       '/taxes': 'taxes',
       '/retirement': 'retirement',
       '/montecarlo': 'montecarlo',
-      '/loans': 'loans'
+      '/loans': 'loans',
+      '/scenarios': 'scenarios'
     }, '/', function (pageKey) {
       activePage = pageKey;
       renderActive(pageKey);
+      // heavy compare only computes on entering the tab (not on every keystroke)
+      if (pageKey === 'scenarios') renderCompare();
     });
   }
 
