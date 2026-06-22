@@ -1,47 +1,29 @@
-/* WealthMD — App wiring (app.js)
- * Builds the UI from state, reads inputs, and re-renders everything live.
+/* WealthMD — App controller (app.js)
+ * Builds the sidebar, syncs inputs <-> Store, persists the plan, and renders
+ * the active routed page. Heavy charts render lazily per page (so canvases are
+ * always visible when drawn).
  */
 (function (global) {
   'use strict';
 
-  /* ---- Default state --------------------------------------------------- */
-  function defaultState() {
-    return {
-      age: 32,
-      retirementAge: 62,
-      income: 350000,
-      filing: 'single',
-      state: 'CA',
-      city: '',
-      deductions: { mode: 'standard', mortgage: 0, salt: 0, charity: 0, medical: 0 },
-      match: { enabled: true, rateCents: 100, capPct: 4 },
-      buckets: {
-        trad401k: { balance: 0, contrib: 23500 },
-        roth401k: { balance: 0, contrib: 0 },
-        plan457: { balance: 0, contrib: 0 },
-        rothIra: { balance: 0, contrib: 7000 },
-        hsa: { balance: 0, contrib: 4300 },
-        taxable: { balance: 0, contrib: 12000 },
-        cash: { balance: 0, contrib: 6000 }
-      },
-      loans: { enabled: true, balance: 220000, rate: 6.5, payment: 24000 },
-      projection: { returnPct: 7, years: 30 }
-    };
-  }
-
-  let state = defaultState();
+  const state = Store.state;          // live reference; hydrate() mutates in place
   const $ = function (id) { return document.getElementById(id); };
+  const num = function (v) { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
   const fmtMoney = function (v) { return '$' + Math.round(v).toLocaleString('en-US'); };
   const fmtPct = function (v) { return (v * 100).toFixed(1) + '%'; };
 
-  /* ---- Build sidebar dynamic pieces ------------------------------------ */
+  let activePage = 'overview';
+
+  /* ------------------------------------------------------------------ */
+  /* Sidebar construction                                                */
+  /* ------------------------------------------------------------------ */
   function buildStateOptions() {
     const sel = $('input-state');
     const codes = Object.keys(Taxes.STATES).sort(function (a, b) {
       return Taxes.STATES[a].name.localeCompare(Taxes.STATES[b].name);
     });
     sel.innerHTML = codes.map(function (c) {
-      return '<option value="' + c + '"' + (c === state.state ? ' selected' : '') + '>' + Taxes.STATES[c].name + '</option>';
+      return '<option value="' + c + '">' + Taxes.STATES[c].name + '</option>';
     }).join('');
   }
 
@@ -50,11 +32,11 @@
     const cities = Taxes.CITY_TAXES[state.state] || [];
     let html = '<option value="">No local tax</option>';
     html += cities.map(function (c) {
-      return '<option value="' + c.name + '"' + (c.name === state.city ? ' selected' : '') +
-        '>' + c.name + ' (' + (c.rate * 100).toFixed(2) + '%)</option>';
+      return '<option value="' + c.name + '">' + c.name + ' (' + (c.rate * 100).toFixed(2) + '%)</option>';
     }).join('');
     sel.innerHTML = html;
     sel.disabled = cities.length === 0;
+    sel.value = state.city || '';
   }
 
   function bucketRow(b) {
@@ -90,7 +72,49 @@
     }).join('');
   }
 
-  /* ---- Read inputs into state ------------------------------------------ */
+  /* Push current state values into all sidebar controls (used after load). */
+  function syncSidebarFromState() {
+    $('input-age').value = state.age;
+    $('input-retire').value = state.retirementAge;
+    $('input-income').value = state.income;
+
+    $('toggle-single').classList.toggle('active', state.filing !== 'married');
+    $('toggle-married').classList.toggle('active', state.filing === 'married');
+
+    $('input-state').value = state.state;
+    buildCityOptions();
+
+    $('ded-standard').classList.toggle('active', state.deductions.mode !== 'itemize');
+    $('ded-itemize').classList.toggle('active', state.deductions.mode === 'itemize');
+    $('itemize-fields').style.display = state.deductions.mode === 'itemize' ? 'block' : 'none';
+    $('ded-mortgage').value = state.deductions.mortgage;
+    $('ded-salt').value = state.deductions.salt;
+    $('ded-charity').value = state.deductions.charity;
+    $('ded-medical').value = state.deductions.medical;
+
+    $('match-toggle').checked = !!state.match.enabled;
+    $('match-rate').value = state.match.rateCents;
+    $('match-cap').value = state.match.capPct;
+
+    buildBuckets();
+
+    $('loan-toggle').checked = !!state.loans.enabled;
+    $('loan-balance').value = state.loans.balance;
+    $('loan-rate').value = state.loans.rate;
+    $('loan-payment').value = state.loans.payment;
+
+    $('input-return').value = state.projection.returnPct;
+    $('input-years').value = state.projection.years;
+    $('return-val').textContent = state.projection.returnPct + '%';
+    $('years-val').textContent = state.projection.years + ' yrs';
+
+    $('onboard-age').value = state.age;
+    $('onboard-retire').value = state.retirementAge;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Inputs -> state                                                     */
+  /* ------------------------------------------------------------------ */
   function readInputs() {
     state.age = num($('input-age').value) || state.age;
     state.retirementAge = num($('input-retire').value) || state.retirementAge;
@@ -125,41 +149,14 @@
     state.projection.years = num($('input-years').value);
   }
 
-  function num(v) { const n = parseFloat(v); return isNaN(n) ? 0 : n; }
-
-  /* ---- Render everything ----------------------------------------------- */
-  let mcTimer = null;
-
-  function renderAll() {
-    readInputs();
-
+  /* ------------------------------------------------------------------ */
+  /* Compute (shared derived data)                                       */
+  /* ------------------------------------------------------------------ */
+  function compute() {
     const proj = Calc.project(state);
     const tax = proj.tax;
     const match = proj.match;
-
-    // KPI cards
-    $('kpi-takehome').textContent = fmtMoney(tax.takeHome);
-    $('kpi-takehome-sub').textContent = fmtMoney(tax.takeHome / 12) + ' / mo';
-    $('kpi-taxrate').textContent = fmtPct(tax.effectiveRate);
-    $('kpi-taxrate-sub').textContent = 'Marginal ' + fmtPct(tax.marginalFederal) + ' fed';
     const savingsRate = state.income > 0 ? (proj.totalContrib + match) / state.income : 0;
-    $('kpi-savings').textContent = fmtPct(savingsRate);
-    $('kpi-savings-sub').textContent = fmtMoney(proj.totalContrib + match) + ' / yr';
-    $('kpi-networth').textContent = fmtMoney(proj.finalNetWorth);
-    $('kpi-networth-sub').textContent = 'at age ' + (state.age + state.projection.years);
-
-    // retirement index within projection
-    const retIndex = Math.max(-1, Math.min(state.projection.years, state.retirementAge - state.age));
-
-    // Charts
-    Charts.netWorth('chart-networth', proj, retIndex);
-    Charts.portfolio('chart-portfolio', proj);
-    Charts.taxDonut('chart-taxdonut', tax);
-
-    // tax breakdown rows
-    renderTaxRows(tax);
-
-    // cash flow
     const flow = {
       taxes: tax.total,
       savings: proj.totalContrib,
@@ -167,38 +164,52 @@
       loan: state.loans.enabled ? state.loans.payment : 0,
       spending: proj.annualSpending
     };
-    Charts.cashFlow('chart-cashflow', flow);
-
-    // Roth optimizer
-    renderRoth();
-
-    // year-by-year table
-    renderTable(proj, retIndex);
-
-    // limit warnings
-    renderWarnings();
-
-    // estimated match label
-    $('match-estimate').textContent = fmtMoney(match) + ' / yr';
-
-    // Monte Carlo (debounced 300ms)
-    if (mcTimer) clearTimeout(mcTimer);
-    mcTimer = setTimeout(function () {
-      const mc = Calc.monteCarlo(state, 500);
-      const ages = proj.rows.map(function (r) { return r.age; });
-      Charts.monteCarlo('chart-montecarlo', mc, ages, retIndex);
-      $('mc-p10').textContent = fmtMoney(mc.finalP10);
-      $('mc-p50').textContent = fmtMoney(mc.finalP50);
-      $('mc-p90').textContent = fmtMoney(mc.finalP90);
-    }, 300);
+    const retIndex = Math.max(-1, Math.min(state.projection.years, state.retirementAge - state.age));
+    return { proj: proj, tax: tax, match: match, savingsRate: savingsRate, flow: flow, retIndex: retIndex };
   }
 
-  function renderTaxRows(tax) {
+  /* ------------------------------------------------------------------ */
+  /* Renderers                                                           */
+  /* ------------------------------------------------------------------ */
+  function renderSidebarDerived(d) {
+    $('match-estimate').textContent = fmtMoney(d.match) + ' / yr';
+    const warns = Calc.limitWarnings(state);
+    Calc.BUCKETS.forEach(function (b) {
+      const el = $('warn-' + b.key);
+      if (!el) return;
+      if (warns[b.key]) {
+        const limit = b.limitKey ? Calc.LIMITS[b.limitKey] : 0;
+        el.textContent = '⚠ exceeds ' + fmtMoney(limit) + ' limit';
+        el.style.display = 'block';
+      } else {
+        el.textContent = '';
+        el.style.display = 'none';
+      }
+    });
+  }
+
+  function renderOverview(d) {
+    $('kpi-takehome').textContent = fmtMoney(d.tax.takeHome);
+    $('kpi-takehome-sub').textContent = fmtMoney(d.tax.takeHome / 12) + ' / mo';
+    $('kpi-taxrate').textContent = fmtPct(d.tax.effectiveRate);
+    $('kpi-taxrate-sub').textContent = 'Marginal ' + fmtPct(d.tax.marginalFederal) + ' fed';
+    $('kpi-savings').textContent = fmtPct(d.savingsRate);
+    $('kpi-savings-sub').textContent = fmtMoney(d.proj.totalContrib + d.match) + ' / yr';
+    $('kpi-networth').textContent = fmtMoney(d.proj.finalNetWorth);
+    $('kpi-networth-sub').textContent = 'at age ' + (state.age + state.projection.years);
+
+    Charts.netWorth('chart-networth', d.proj, d.retIndex);
+    Charts.cashFlow('chart-cashflow', d.flow);
+  }
+
+  function renderTaxes(d) {
+    Charts.taxDonut('chart-taxdonut', d.tax);
+
     const rows = [
-      { label: 'Federal', val: tax.federal, color: '#ef4444' },
-      { label: 'FICA', val: tax.fica, color: '#fb7185' },
-      { label: 'State', val: tax.state, color: '#f59e0b' },
-      { label: 'Local', val: tax.local, color: '#f97316' }
+      { label: 'Federal', val: d.tax.federal, color: '#ef4444' },
+      { label: 'FICA', val: d.tax.fica, color: '#fb7185' },
+      { label: 'State', val: d.tax.state, color: '#f59e0b' },
+      { label: 'Local', val: d.tax.local, color: '#f97316' }
     ];
     const max = Math.max.apply(null, rows.map(function (r) { return r.val; }).concat([1]));
     $('tax-rows').innerHTML = rows.map(function (r) {
@@ -208,9 +219,21 @@
         '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%;background:' + r.color + '"></div></div>' +
         '</div>';
     }).join('');
+
+    const stats = [
+      { label: 'Gross income', val: fmtMoney(d.tax.gross) },
+      { label: 'Adjusted gross income', val: fmtMoney(d.tax.agi) },
+      { label: 'Deduction (' + d.tax.deduction.used + ')', val: fmtMoney(d.tax.deduction.amount) },
+      { label: 'Taxable income', val: fmtMoney(d.tax.taxable) },
+      { label: 'Total tax', val: fmtMoney(d.tax.total) },
+      { label: 'Take-home', val: fmtMoney(d.tax.takeHome) }
+    ];
+    $('tax-summary').innerHTML = statCards(stats);
   }
 
-  function renderRoth() {
+  function renderRetirement(d) {
+    Charts.portfolio('chart-portfolio', d.proj);
+
     const plan = Calc.rothPlan(state);
     $('roth-current').textContent = fmtPct(plan.currentMarginal);
     $('roth-retire').textContent = fmtPct(plan.retirementMarginal);
@@ -229,11 +252,8 @@
       verdict.textContent = 'Conversions look marginal — your retirement rate is similar to today. Revisit if income drops in early retirement.';
       verdict.className = 'roth-verdict neutral';
     }
-  }
 
-  function renderTable(proj, retIndex) {
-    const body = $('table-body');
-    body.innerHTML = proj.rows.map(function (r) {
+    $('table-body').innerHTML = d.proj.rows.map(function (r) {
       const highlight = (r.age === state.retirementAge) ? ' class="ret-row"' : '';
       return '<tr' + highlight + '>' +
         '<td>' + r.calendarYear + ' · ' + r.age + '</td>' +
@@ -247,108 +267,141 @@
     }).join('');
   }
 
-  function renderWarnings() {
-    const warns = Calc.limitWarnings(state);
-    Calc.BUCKETS.forEach(function (b) {
-      const el = $('warn-' + b.key);
-      if (!el) return;
-      if (warns[b.key]) {
-        const limit = b.limitKey ? Calc.LIMITS[b.limitKey] : 0;
-        el.textContent = '⚠ exceeds ' + fmtMoney(limit) + ' limit';
-        el.style.display = 'block';
-      } else {
-        el.textContent = '';
-        el.style.display = 'none';
-      }
-    });
+  let mcTimer = null;
+  function renderMonteCarlo(d) {
+    if (mcTimer) clearTimeout(mcTimer);
+    mcTimer = setTimeout(function () {
+      const mc = Calc.monteCarlo(state, 500);
+      const ages = d.proj.rows.map(function (r) { return r.age; });
+      Charts.monteCarlo('chart-montecarlo', mc, ages, d.retIndex);
+      $('mc-p10').textContent = fmtMoney(mc.finalP10);
+      $('mc-p50').textContent = fmtMoney(mc.finalP50);
+      $('mc-p90').textContent = fmtMoney(mc.finalP90);
+    }, 300);
   }
 
-  /* ---- Event wiring ---------------------------------------------------- */
+  function renderLoans(d) {
+    const wrap = $('loan-summary');
+    if (!state.loans.enabled || state.loans.balance <= 0) {
+      wrap.innerHTML = '<div class="empty-note">No student loans on file — you\'re debt-free here 🎉</div>';
+      return;
+    }
+    const s = loanSummary();
+    const payoff = s.neverPaysOff
+      ? '<span class="bad">Never (payment ≤ interest)</span>'
+      : (s.payoffYears + ' yrs · age ' + s.payoffAge);
+    const stats = [
+      { label: 'Current balance', val: fmtMoney(state.loans.balance) },
+      { label: 'Interest rate', val: state.loans.rate + '%' },
+      { label: 'Annual payment', val: fmtMoney(state.loans.payment) },
+      { label: 'Time to payoff', val: payoff },
+      { label: 'Total interest paid', val: fmtMoney(s.totalInterest) },
+      { label: 'Total paid', val: fmtMoney(s.totalPaid) }
+    ];
+    wrap.innerHTML = statCards(stats);
+  }
+
+  function statCards(stats) {
+    return stats.map(function (s) {
+      return '<div class="stat-card"><span class="stat-label">' + s.label +
+        '</span><span class="stat-val">' + s.val + '</span></div>';
+    }).join('');
+  }
+
+  function loanSummary() {
+    let bal = Math.max(0, state.loans.balance);
+    const rate = (state.loans.rate || 0) / 100;
+    const pmt = Math.max(0, state.loans.payment);
+    let totalInterest = 0, totalPaid = 0, years = 0;
+    let neverPaysOff = false;
+    for (let y = 1; y <= 80; y++) {
+      const interest = bal * rate;
+      if (pmt <= interest) { neverPaysOff = true; break; }
+      const pay = Math.min(pmt, bal + interest);
+      bal = Math.max(0, bal - (pay - interest));
+      totalInterest += interest;
+      totalPaid += pay;
+      years = y;
+      if (bal <= 0) break;
+    }
+    return {
+      neverPaysOff: neverPaysOff,
+      payoffYears: years,
+      payoffAge: state.age + years,
+      totalInterest: totalInterest,
+      totalPaid: totalPaid
+    };
+  }
+
+  const pages = {
+    overview: renderOverview,
+    taxes: renderTaxes,
+    retirement: renderRetirement,
+    montecarlo: renderMonteCarlo,
+    loans: renderLoans
+  };
+
+  /* Read inputs, persist, render sidebar bits + the active page only. */
+  function renderActive(pageKey) {
+    if (pageKey) activePage = pageKey;
+    readInputs();
+    Persist.save(Store.toPlan());
+    const d = compute();
+    renderSidebarDerived(d);
+    (pages[activePage] || pages.overview)(d);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Event wiring                                                        */
+  /* ------------------------------------------------------------------ */
   function wire() {
-    // text/number/select inputs -> live update
     document.querySelectorAll('#sidebar input, #sidebar select').forEach(function (el) {
       el.addEventListener('input', function () {
         if (el.id === 'input-state') { buildCityOptions(); }
-        renderAll();
+        renderActive();
       });
-      el.addEventListener('change', renderAll);
+      el.addEventListener('change', function () { renderActive(); });
     });
 
-    // filing status toggle
     $('toggle-single').addEventListener('click', function () { setFiling('single'); });
     $('toggle-married').addEventListener('click', function () { setFiling('married'); });
-
-    // deductions toggle
     $('ded-standard').addEventListener('click', function () { setDeduction('standard'); });
     $('ded-itemize').addEventListener('click', function () { setDeduction('itemize'); });
 
-    // collapsible sections
     document.querySelectorAll('.collapsible-header').forEach(function (h) {
-      h.addEventListener('click', function () {
-        const card = h.closest('.card');
-        card.classList.toggle('collapsed');
-      });
+      h.addEventListener('click', function () { h.closest('.card').classList.toggle('collapsed'); });
     });
 
-    // keep remembered age/retirement in sync when edited in the Profile card
-    ['input-age', 'input-retire'].forEach(function (id) {
-      $(id).addEventListener('change', function () {
-        state.age = num($('input-age').value) || state.age;
-        state.retirementAge = num($('input-retire').value) || state.retirementAge;
-        saveOnboarding();
-      });
-    });
-
-    // sliders show values
     $('input-return').addEventListener('input', function () { $('return-val').textContent = this.value + '%'; });
     $('input-years').addEventListener('input', function () { $('years-val').textContent = this.value + ' yrs'; });
 
-    // PDF / print
     $('btn-pdf').addEventListener('click', function () { window.print(); });
 
-    // mobile sidebar toggle
     $('nav-toggle').addEventListener('click', function () {
       document.body.classList.toggle('sidebar-open');
     });
+    // tapping a tab on mobile closes the input drawer
+    document.querySelectorAll('[data-route]').forEach(function (tab) {
+      tab.addEventListener('click', function () { document.body.classList.remove('sidebar-open'); });
+    });
 
-    // onboarding modal
     $('onboard-build').addEventListener('click', function () {
       state.age = num($('onboard-age').value) || 32;
       state.retirementAge = num($('onboard-retire').value) || 62;
-      // sync the editable Profile fields so age can be changed later
+      state.onboarded = true;
       $('input-age').value = state.age;
       $('input-retire').value = state.retirementAge;
-      saveOnboarding();
+      Persist.saveNow(Store.toPlan());
       $('onboard-modal').classList.add('hidden');
-      renderAll();
+      renderActive();
     });
-  }
-
-  /* ---- Onboarding persistence ----------------------------------------- */
-  const ONBOARD_KEY = 'wealthmd_onboard';
-
-  function saveOnboarding() {
-    try {
-      localStorage.setItem(ONBOARD_KEY, JSON.stringify({
-        done: true, age: state.age, retirementAge: state.retirementAge
-      }));
-    } catch (e) { /* localStorage unavailable (private mode) — modal will show next time */ }
-  }
-
-  function loadOnboarding() {
-    try {
-      const raw = localStorage.getItem(ONBOARD_KEY);
-      if (!raw) return null;
-      const data = JSON.parse(raw);
-      return data && data.done ? data : null;
-    } catch (e) { return null; }
   }
 
   function setFiling(f) {
     state.filing = f;
     $('toggle-single').classList.toggle('active', f === 'single');
     $('toggle-married').classList.toggle('active', f === 'married');
-    renderAll();
+    renderActive();
   }
 
   function setDeduction(mode) {
@@ -356,32 +409,35 @@
     $('ded-standard').classList.toggle('active', mode === 'standard');
     $('ded-itemize').classList.toggle('active', mode === 'itemize');
     $('itemize-fields').style.display = mode === 'itemize' ? 'block' : 'none';
-    renderAll();
+    renderActive();
   }
 
-  /* ---- Init ------------------------------------------------------------ */
+  /* ------------------------------------------------------------------ */
+  /* Init                                                                */
+  /* ------------------------------------------------------------------ */
   function init() {
     buildStateOptions();
-    buildCityOptions();
-    buildBuckets();
-    wire();
-    // sync slider labels
-    $('return-val').textContent = state.projection.returnPct + '%';
-    $('years-val').textContent = state.projection.years + ' yrs';
 
-    // skip onboarding if we've remembered the user's age/retirement
-    const saved = loadOnboarding();
-    if (saved) {
-      state.age = saved.age || state.age;
-      state.retirementAge = saved.retirementAge || state.retirementAge;
-      $('input-age').value = state.age;
-      $('input-retire').value = state.retirementAge;
-      $('onboard-age').value = state.age;
-      $('onboard-retire').value = state.retirementAge;
+    const saved = Persist.load();
+    if (saved) Store.hydrate(saved);
+
+    syncSidebarFromState();
+    wire();
+
+    if (state.onboarded) {
       $('onboard-modal').classList.add('hidden');
     }
 
-    renderAll();
+    Router.start({
+      '/': 'overview',
+      '/taxes': 'taxes',
+      '/retirement': 'retirement',
+      '/montecarlo': 'montecarlo',
+      '/loans': 'loans'
+    }, '/', function (pageKey) {
+      activePage = pageKey;
+      renderActive(pageKey);
+    });
   }
 
   if (document.readyState === 'loading') {
@@ -390,5 +446,5 @@
     init();
   }
 
-  global.WealthMD = { state: state, render: renderAll };
+  global.WealthMD = { state: state, render: renderActive };
 })(typeof window !== 'undefined' ? window : this);

@@ -161,103 +161,142 @@
 
     </aside>
 
-    <!-- Main content -->
-    <main class="main" id="main">
+    <!-- Content column: tab bar + routed pages -->
+    <div class="content">
 
-      <div class="kpi-row">
-        <div class="kpi-card">
-          <div class="kpi-label">Annual Take-Home</div>
-          <div class="kpi-value" id="kpi-takehome">$0</div>
-          <div class="kpi-sub" id="kpi-takehome-sub">—</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Effective Tax Rate</div>
-          <div class="kpi-value" id="kpi-taxrate">0%</div>
-          <div class="kpi-sub" id="kpi-taxrate-sub">—</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Savings Rate</div>
-          <div class="kpi-value" id="kpi-savings">0%</div>
-          <div class="kpi-sub" id="kpi-savings-sub">—</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Projected Net Worth</div>
-          <div class="kpi-value" id="kpi-networth">$0</div>
-          <div class="kpi-sub" id="kpi-networth-sub">—</div>
-        </div>
-      </div>
+      <nav class="tabbar" id="tabbar">
+        <a class="tab" data-route="/" href="#/">Overview</a>
+        <a class="tab" data-route="/taxes" href="#/taxes">Taxes</a>
+        <a class="tab" data-route="/retirement" href="#/retirement">Retirement</a>
+        <a class="tab" data-route="/montecarlo" href="#/montecarlo">Monte Carlo</a>
+        <a class="tab" data-route="/loans" href="#/loans">Student Loans</a>
+      </nav>
 
-      <div class="panel">
-        <div class="panel-head"><h3>Net Worth Projection</h3></div>
-        <div class="chart-box" style="height:240px"><canvas id="chart-networth"></canvas></div>
-      </div>
+      <main class="main" id="main">
 
-      <div class="panel">
-        <div class="panel-head">
-          <h3>Monte Carlo Simulation <span class="muted">· 500 runs</span></h3>
-          <div class="mc-stats">
-            <span class="mc-pill p10">P10 <strong id="mc-p10">$0</strong></span>
-            <span class="mc-pill p50">P50 <strong id="mc-p50">$0</strong></span>
-            <span class="mc-pill p90">P90 <strong id="mc-p90">$0</strong></span>
+        <!-- ===== Overview ===== -->
+        <section class="page" data-page="overview">
+          <div class="kpi-row">
+            <div class="kpi-card">
+              <div class="kpi-label">Annual Take-Home</div>
+              <div class="kpi-value" id="kpi-takehome">$0</div>
+              <div class="kpi-sub" id="kpi-takehome-sub">—</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Effective Tax Rate</div>
+              <div class="kpi-value" id="kpi-taxrate">0%</div>
+              <div class="kpi-sub" id="kpi-taxrate-sub">—</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Savings Rate</div>
+              <div class="kpi-value" id="kpi-savings">0%</div>
+              <div class="kpi-sub" id="kpi-savings-sub">—</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Projected Net Worth</div>
+              <div class="kpi-value" id="kpi-networth">$0</div>
+              <div class="kpi-sub" id="kpi-networth-sub">—</div>
+            </div>
           </div>
-        </div>
-        <div class="chart-box" style="height:240px"><canvas id="chart-montecarlo"></canvas></div>
-      </div>
 
-      <div class="two-col">
-        <div class="panel">
-          <div class="panel-head"><h3>Portfolio by Bucket</h3></div>
-          <div class="chart-box" style="height:260px"><canvas id="chart-portfolio"></canvas></div>
-        </div>
-        <div class="panel">
-          <div class="panel-head"><h3>Tax Breakdown</h3></div>
-          <div class="tax-split">
-            <div class="donut-box"><canvas id="chart-taxdonut"></canvas></div>
-            <div class="tax-rows" id="tax-rows"></div>
+          <div class="panel">
+            <div class="panel-head"><h3>Net Worth Projection</h3></div>
+            <div class="chart-box" style="height:240px"><canvas id="chart-networth"></canvas></div>
           </div>
-        </div>
-      </div>
 
-      <div class="panel">
-        <div class="panel-head"><h3>Annual Cash Flow</h3></div>
-        <div class="chart-box" style="height:140px"><canvas id="chart-cashflow"></canvas></div>
-      </div>
+          <div class="panel">
+            <div class="panel-head"><h3>Annual Cash Flow</h3></div>
+            <div class="chart-box" style="height:140px"><canvas id="chart-cashflow"></canvas></div>
+          </div>
+        </section>
 
-      <div class="panel roth-card">
-        <div class="panel-head"><h3>Roth Conversion Optimizer</h3></div>
-        <div class="roth-grid">
-          <div class="roth-stat"><span class="roth-stat-label">Current marginal rate</span><span class="roth-stat-val" id="roth-current">—</span></div>
-          <div class="roth-stat"><span class="roth-stat-label">Est. retirement rate</span><span class="roth-stat-val" id="roth-retire">—</span></div>
-          <div class="roth-stat"><span class="roth-stat-label">Conversion window</span><span class="roth-stat-val" id="roth-window">—</span></div>
-          <div class="roth-stat"><span class="roth-stat-label">Suggested annual conversion</span><span class="roth-stat-val accent" id="roth-annual">—</span></div>
-          <div class="roth-stat"><span class="roth-stat-label">Total convertible</span><span class="roth-stat-val" id="roth-total">—</span></div>
-          <div class="roth-stat"><span class="roth-stat-label">Est. tax cost</span><span class="roth-stat-val" id="roth-taxcost">—</span></div>
-        </div>
-        <div class="roth-verdict neutral" id="roth-verdict">—</div>
-      </div>
+        <!-- ===== Taxes ===== -->
+        <section class="page" data-page="taxes">
+          <div class="panel">
+            <div class="panel-head"><h3>Tax Breakdown <span class="muted">· 2025</span></h3></div>
+            <div class="tax-split">
+              <div class="donut-box"><canvas id="chart-taxdonut"></canvas></div>
+              <div class="tax-rows" id="tax-rows"></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>Tax Summary</h3></div>
+            <div class="stat-grid" id="tax-summary"></div>
+          </div>
+        </section>
 
-      <div class="panel">
-        <div class="panel-head"><h3>Year-by-Year Detail</h3></div>
-        <div class="table-wrap">
-          <table class="yoy-table">
-            <thead>
-              <tr>
-                <th>Year / Age</th><th>Net Worth</th><th>Total Assets</th><th>Loan Balance</th>
-                <th>Employer Match</th><th>Total Saved</th><th>Est. Spending</th>
-              </tr>
-            </thead>
-            <tbody id="table-body"></tbody>
-          </table>
-        </div>
-      </div>
+        <!-- ===== Retirement ===== -->
+        <section class="page" data-page="retirement">
+          <div class="panel">
+            <div class="panel-head"><h3>Portfolio by Bucket</h3></div>
+            <div class="chart-box" style="height:280px"><canvas id="chart-portfolio"></canvas></div>
+          </div>
 
-    </main>
+          <div class="panel roth-card">
+            <div class="panel-head"><h3>Roth Conversion Optimizer</h3></div>
+            <div class="roth-grid">
+              <div class="roth-stat"><span class="roth-stat-label">Current marginal rate</span><span class="roth-stat-val" id="roth-current">—</span></div>
+              <div class="roth-stat"><span class="roth-stat-label">Est. retirement rate</span><span class="roth-stat-val" id="roth-retire">—</span></div>
+              <div class="roth-stat"><span class="roth-stat-label">Conversion window</span><span class="roth-stat-val" id="roth-window">—</span></div>
+              <div class="roth-stat"><span class="roth-stat-label">Suggested annual conversion</span><span class="roth-stat-val accent" id="roth-annual">—</span></div>
+              <div class="roth-stat"><span class="roth-stat-label">Total convertible</span><span class="roth-stat-val" id="roth-total">—</span></div>
+              <div class="roth-stat"><span class="roth-stat-label">Est. tax cost</span><span class="roth-stat-val" id="roth-taxcost">—</span></div>
+            </div>
+            <div class="roth-verdict neutral" id="roth-verdict">—</div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><h3>Year-by-Year Detail</h3></div>
+            <div class="table-wrap">
+              <table class="yoy-table">
+                <thead>
+                  <tr>
+                    <th>Year / Age</th><th>Net Worth</th><th>Total Assets</th><th>Loan Balance</th>
+                    <th>Employer Match</th><th>Total Saved</th><th>Est. Spending</th>
+                  </tr>
+                </thead>
+                <tbody id="table-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== Monte Carlo ===== -->
+        <section class="page" data-page="montecarlo">
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Monte Carlo Simulation <span class="muted">· 500 runs · ±14% σ</span></h3>
+              <div class="mc-stats">
+                <span class="mc-pill p10">P10 <strong id="mc-p10">$0</strong></span>
+                <span class="mc-pill p50">P50 <strong id="mc-p50">$0</strong></span>
+                <span class="mc-pill p90">P90 <strong id="mc-p90">$0</strong></span>
+              </div>
+            </div>
+            <div class="chart-box" style="height:300px"><canvas id="chart-montecarlo"></canvas></div>
+            <p class="page-note">Each line is a percentile across 500 simulated return paths. P50 is the median outcome; the shaded band spans P10–P90.</p>
+          </div>
+        </section>
+
+        <!-- ===== Student Loans ===== -->
+        <section class="page" data-page="loans">
+          <div class="panel">
+            <div class="panel-head"><h3>Student Loan Summary</h3></div>
+            <div class="stat-grid" id="loan-summary"></div>
+            <p class="page-note">Edit your loan balance, rate, and payment in the sidebar. Deeper strategies (PSLF, refinance vs. IDR) are coming in a later release.</p>
+          </div>
+        </section>
+
+      </main>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="js/taxes.js"></script>
   <script src="js/calc.js"></script>
   <script src="js/charts.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/persist.js"></script>
+  <script src="js/router.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
