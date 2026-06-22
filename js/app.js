@@ -27,16 +27,30 @@
     }).join('');
   }
 
-  function buildCityOptions() {
-    const sel = $('input-city');
-    const cities = Taxes.CITY_TAXES[state.state] || [];
+  function cityOptionsHtml(stateCode, selected) {
+    const cities = (Taxes.CITY_TAXES[stateCode] || []).slice().sort(function (a, b) {
+      return a.name.localeCompare(b.name);
+    });
     let html = '<option value="">No local tax</option>';
     html += cities.map(function (c) {
-      return '<option value="' + c.name + '">' + c.name + ' (' + (c.rate * 100).toFixed(2) + '%)</option>';
+      return '<option value="' + c.name + '"' + (c.name === selected ? ' selected' : '') +
+        '>' + c.name + ' (' + (c.rate * 100).toFixed(2) + '%)</option>';
     }).join('');
-    sel.innerHTML = html;
-    sel.disabled = cities.length === 0;
+    return { html: html, count: cities.length };
+  }
+
+  function buildCityOptions() {
+    const sel = $('input-city');
+    const out = cityOptionsHtml(state.state, state.city);
+    sel.innerHTML = out.html;
+    sel.disabled = out.count === 0;
     sel.value = state.city || '';
+    const hint = $('city-hint');
+    if (hint) {
+      hint.textContent = out.count === 0
+        ? 'No local income tax in this state.'
+        : out.count + ' local-tax jurisdiction' + (out.count === 1 ? '' : 's') + ' — only cities/counties that levy a local income tax are listed.';
+    }
   }
 
   function bucketRow(b) {
@@ -390,7 +404,8 @@
   /* ------------------------------------------------------------------ */
   /* Onboarding wizard                                                   */
   /* ------------------------------------------------------------------ */
-  const WIZ_STEPS = 6;
+  const WIZ_STEPS = 8;
+  const WIZ_SKIPPABLE = { 1: true, 2: true, 3: true, 4: true, 5: true, 6: true };
   let wizStep = 0;
   let wizFiling = 'single';
 
@@ -408,13 +423,34 @@
 
   function buildWizardCities() {
     const sel = $('wiz-city');
-    const cities = Taxes.CITY_TAXES[$('wiz-state').value] || [];
-    let html = '<option value="">No local tax</option>';
-    html += cities.map(function (c) {
-      return '<option value="' + c.name + '">' + c.name + ' (' + (c.rate * 100).toFixed(2) + '%)</option>';
+    const out = cityOptionsHtml($('wiz-state').value, state.city);
+    sel.innerHTML = out.html;
+    sel.disabled = out.count === 0;
+    const hint = $('wiz-city-hint');
+    if (hint) {
+      hint.textContent = out.count === 0
+        ? 'No local income tax in this state.'
+        : out.count + ' local-tax jurisdiction' + (out.count === 1 ? '' : 's') + ' listed (only places that levy one).';
+    }
+  }
+
+  function buildWizardBuckets() {
+    const wrap = $('wiz-buckets');
+    wrap.innerHTML = Calc.BUCKET_GROUPS.map(function (grp) {
+      const rows = Calc.BUCKETS.filter(function (b) { return b.group === grp.id; }).map(function (b) {
+        const v = state.buckets[b.key];
+        return '<div class="wiz-bucket-row">' +
+          '<label>' + b.label + '</label>' +
+          '<div class="wiz-bucket-fields">' +
+          '<div class="input-prefix sm"><span>$</span><input type="number" id="wiz-bk-' + b.key + '-bal" value="' + v.balance + '" min="0" step="1000" aria-label="' + b.label + ' balance"></div>' +
+          '<div class="input-prefix sm"><span>$</span><input type="number" id="wiz-bk-' + b.key + '-con" value="' + v.contrib + '" min="0" step="500" aria-label="' + b.label + ' annual"></div>' +
+          '</div>' +
+          '</div>';
+      }).join('');
+      return '<div class="wiz-bucket-group">' +
+        '<div class="wiz-bucket-grouphead">' + grp.label +
+        '<span class="wiz-bucket-cols">balance · annual</span></div>' + rows + '</div>';
     }).join('');
-    sel.innerHTML = html;
-    sel.disabled = cities.length === 0;
   }
 
   function prefillWizard() {
@@ -424,10 +460,15 @@
     wizFiling = state.filing;
     $('wiz-single').classList.toggle('active', wizFiling !== 'married');
     $('wiz-married').classList.toggle('active', wizFiling === 'married');
-    $('wiz-bal').value = state.buckets.trad401k.balance;
-    $('wiz-contrib').value = state.buckets.trad401k.contrib;
-    $('wiz-cash').value = state.buckets.cash.balance;
+    $('wiz-match-toggle').checked = !!state.match.enabled;
+    $('wiz-match-rate').value = state.match.rateCents;
+    $('wiz-match-cap').value = state.match.capPct;
+    $('wiz-loan-toggle').checked = !!state.loans.enabled;
+    $('wiz-loan-balance').value = state.loans.balance;
+    $('wiz-loan-rate').value = state.loans.rate;
+    $('wiz-loan-payment').value = state.loans.payment;
     buildWizardOptions();
+    buildWizardBuckets();
   }
 
   function showWizStep(i) {
@@ -438,8 +479,7 @@
     $('wiz-progress').style.width = Math.round((wizStep + 1) / WIZ_STEPS * 100) + '%';
     $('wiz-step-count').textContent = 'Step ' + (wizStep + 1) + ' of ' + WIZ_STEPS;
     $('wiz-back').style.visibility = wizStep === 0 ? 'hidden' : 'visible';
-    // Skip only on the input steps (1–4)
-    $('wiz-skip').style.visibility = (wizStep >= 1 && wizStep <= 4) ? 'visible' : 'hidden';
+    $('wiz-skip').style.visibility = WIZ_SKIPPABLE[wizStep] ? 'visible' : 'hidden';
     $('wiz-next').textContent = wizStep === WIZ_STEPS - 1 ? 'Build My Plan →' : 'Next →';
     if (wizStep === WIZ_STEPS - 1) renderWizSummary();
   }
@@ -455,21 +495,36 @@
       state.income = num($('wiz-income').value);
       state.filing = wizFiling;
     } else if (i === 4) {
-      state.buckets.trad401k.balance = num($('wiz-bal').value);
-      state.buckets.trad401k.contrib = num($('wiz-contrib').value);
-      state.buckets.cash.balance = num($('wiz-cash').value);
+      state.match.enabled = $('wiz-match-toggle').checked;
+      state.match.rateCents = num($('wiz-match-rate').value);
+      state.match.capPct = num($('wiz-match-cap').value);
+    } else if (i === 5) {
+      Calc.BUCKETS.forEach(function (b) {
+        const bal = $('wiz-bk-' + b.key + '-bal');
+        const con = $('wiz-bk-' + b.key + '-con');
+        if (bal) state.buckets[b.key].balance = num(bal.value);
+        if (con) state.buckets[b.key].contrib = num(con.value);
+      });
+    } else if (i === 6) {
+      state.loans.enabled = $('wiz-loan-toggle').checked;
+      state.loans.balance = num($('wiz-loan-balance').value);
+      state.loans.rate = num($('wiz-loan-rate').value);
+      state.loans.payment = num($('wiz-loan-payment').value);
     }
   }
 
   function renderWizSummary() {
     const cityTxt = state.city ? ' · ' + state.city : '';
+    const totalBal = Calc.totalBalance(state);
+    const totalContrib = Calc.totalContributions(state);
     const rows = [
       ['Age', state.age + ' → retire at ' + state.retirementAge],
       ['Location', (Taxes.STATES[state.state] ? Taxes.STATES[state.state].name : state.state) + cityTxt],
       ['Income', fmtMoney(state.income) + ' · ' + (state.filing === 'married' ? 'MFJ' : 'Single')],
-      ['401k balance', fmtMoney(state.buckets.trad401k.balance)],
-      ['401k / yr', fmtMoney(state.buckets.trad401k.contrib)],
-      ['Emergency cash', fmtMoney(state.buckets.cash.balance)]
+      ['Employer match', state.match.enabled ? (state.match.rateCents + '¢/$ up to ' + state.match.capPct + '%') : 'None'],
+      ['Total balances', fmtMoney(totalBal)],
+      ['Saved per year', fmtMoney(totalContrib)],
+      ['Student loans', state.loans.enabled && state.loans.balance > 0 ? fmtMoney(state.loans.balance) + ' @ ' + state.loans.rate + '%' : 'None']
     ];
     $('wiz-summary').innerHTML = rows.map(function (r) {
       return '<div class="wiz-summary-row"><span>' + r[0] + '</span><strong>' + r[1] + '</strong></div>';

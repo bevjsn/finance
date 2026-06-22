@@ -23,7 +23,7 @@
         <!-- Step 0: welcome -->
         <div class="wizard-step active" data-step="0">
           <h2>Welcome to WealthMD</h2>
-          <p class="modal-sub">A financial roadmap built for physicians. We'll ask a few quick questions to set up your plan — you can skip any of them and change everything later.</p>
+          <p class="modal-sub">A financial roadmap built for physicians. We'll walk through your profile, accounts, and debts to build your plan — every question is optional, so skip anything you're not sure about and change it later.</p>
         </div>
 
         <!-- Step 1: about you -->
@@ -51,6 +51,7 @@
           <div class="modal-field">
             <label>City (local tax)</label>
             <select id="wiz-city"></select>
+            <p class="field-hint" id="wiz-city-hint"></p>
           </div>
         </div>
 
@@ -71,26 +72,55 @@
           </div>
         </div>
 
-        <!-- Step 4: savings snapshot -->
+        <!-- Step 4: employer match -->
         <div class="wizard-step" data-step="4">
-          <h2>Savings snapshot</h2>
-          <p class="modal-sub">A rough starting point — fine-tune every bucket later in the sidebar.</p>
+          <h2>Employer match</h2>
+          <p class="modal-sub">Does your employer match retirement contributions?</p>
+          <label class="switch-row">
+            <span>My employer offers a match</span>
+            <input type="checkbox" id="wiz-match-toggle" checked>
+          </label>
           <div class="modal-field">
-            <label>Current 401k/403b balance</label>
-            <div class="input-prefix"><span>$</span><input type="number" id="wiz-bal" value="0" min="0" step="1000"></div>
+            <label>Match rate <span class="hint">(¢ per $ — 100 = dollar-for-dollar)</span></label>
+            <input type="number" id="wiz-match-rate" value="100" min="0" step="5">
           </div>
           <div class="modal-field">
-            <label>Annual 401k/403b contribution</label>
-            <div class="input-prefix"><span>$</span><input type="number" id="wiz-contrib" value="23500" min="0" step="500"></div>
-          </div>
-          <div class="modal-field">
-            <label>Emergency cash on hand</label>
-            <div class="input-prefix"><span>$</span><input type="number" id="wiz-cash" value="0" min="0" step="1000"></div>
+            <label>Match cap <span class="hint">(% of salary)</span></label>
+            <input type="number" id="wiz-match-cap" value="4" min="0" step="0.5">
           </div>
         </div>
 
-        <!-- Step 5: done -->
+        <!-- Step 5: accounts & savings -->
         <div class="wizard-step" data-step="5">
+          <h2>Your accounts &amp; savings</h2>
+          <p class="modal-sub">Current balance and what you add each year, for every account. Leave any at $0 if it doesn't apply.</p>
+          <div id="wiz-buckets"></div>
+        </div>
+
+        <!-- Step 6: student loans -->
+        <div class="wizard-step" data-step="6">
+          <h2>Student loans</h2>
+          <p class="modal-sub">Most physicians carry training debt — add it here if you do.</p>
+          <label class="switch-row">
+            <span>I have student loans</span>
+            <input type="checkbox" id="wiz-loan-toggle" checked>
+          </label>
+          <div class="modal-field">
+            <label>Loan balance</label>
+            <div class="input-prefix"><span>$</span><input type="number" id="wiz-loan-balance" value="220000" min="0" step="1000"></div>
+          </div>
+          <div class="modal-field">
+            <label>Interest rate <span class="hint">(%)</span></label>
+            <input type="number" id="wiz-loan-rate" value="6.5" min="0" step="0.1">
+          </div>
+          <div class="modal-field">
+            <label>Annual payment</label>
+            <div class="input-prefix"><span>$</span><input type="number" id="wiz-loan-payment" value="24000" min="0" step="500"></div>
+          </div>
+        </div>
+
+        <!-- Step 7: done -->
+        <div class="wizard-step" data-step="7">
           <h2>You're all set 🎉</h2>
           <p class="modal-sub">Here's what we'll start with — everything is editable from the sidebar.</p>
           <div class="wizard-summary" id="wiz-summary"></div>
@@ -154,6 +184,7 @@
         <div class="field">
           <label>City (local tax)</label>
           <select id="input-city"></select>
+          <p class="field-hint" id="city-hint"></p>
         </div>
       </div>
 

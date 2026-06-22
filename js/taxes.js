@@ -151,20 +151,102 @@
   };
 
   /* ---------------------------------------------------------------------- */
-  /* Local / city income taxes (2025). Keyed by state code.                  */
+  /* Local / city income taxes (2025), keyed by state code.                  */
+  /* Only jurisdictions that actually levy a LOCAL INCOME TAX are listed —   */
+  /* the great majority of U.S. cities have none, so they don't appear.      */
+  /* Rates are approximate 2025 resident rates for planning purposes.        */
   /* ---------------------------------------------------------------------- */
   const CITY_TAXES = {
-    NY: [{ name: 'New York City', rate: 0.03876 }, { name: 'Yonkers', rate: 0.01477 }],
-    PA: [{ name: 'Philadelphia', rate: 0.0375 }, { name: 'Pittsburgh', rate: 0.03 }, { name: 'Scranton', rate: 0.034 }],
-    MI: [{ name: 'Detroit', rate: 0.024 }, { name: 'Grand Rapids', rate: 0.015 }, { name: 'Lansing', rate: 0.01 }],
-    OH: [{ name: 'Columbus', rate: 0.025 }, { name: 'Cleveland', rate: 0.025 }, { name: 'Cincinnati', rate: 0.018 }, { name: 'Toledo', rate: 0.0225 }, { name: 'Akron', rate: 0.025 }],
-    MD: [{ name: 'Baltimore', rate: 0.032 }, { name: 'Montgomery County', rate: 0.032 }],
-    KY: [{ name: 'Louisville', rate: 0.0228 }, { name: 'Lexington', rate: 0.0225 }],
-    IN: [{ name: 'Indianapolis', rate: 0.02 }, { name: 'Fort Wayne', rate: 0.0148 }],
-    MO: [{ name: 'Kansas City', rate: 0.01 }, { name: 'St. Louis', rate: 0.01 }],
-    DE: [{ name: 'Wilmington', rate: 0.0125 }],
-    AL: [{ name: 'Birmingham', rate: 0.01 }],
-    OR: [{ name: 'Portland (Metro)', rate: 0.01 }]
+    AL: [
+      { name: 'Birmingham', rate: 0.01 }, { name: 'Bessemer', rate: 0.01 },
+      { name: 'Gadsden', rate: 0.02 }, { name: 'Attalla', rate: 0.02 },
+      { name: 'Macon County', rate: 0.01 }, { name: 'Midfield', rate: 0.01 }
+    ],
+    DE: [
+      { name: 'Wilmington', rate: 0.0125 }
+    ],
+    IN: [
+      { name: 'Marion County (Indianapolis)', rate: 0.0202 }, { name: 'Allen County (Fort Wayne)', rate: 0.0159 },
+      { name: 'Lake County (Gary)', rate: 0.015 }, { name: 'St. Joseph County (South Bend)', rate: 0.0175 },
+      { name: 'Hamilton County', rate: 0.011 }, { name: 'Elkhart County', rate: 0.02 },
+      { name: 'Vanderburgh County (Evansville)', rate: 0.012 }, { name: 'Tippecanoe County (Lafayette)', rate: 0.0128 },
+      { name: 'Monroe County (Bloomington)', rate: 0.02035 }, { name: 'Hendricks County', rate: 0.017 },
+      { name: 'Johnson County', rate: 0.012 }, { name: 'Madison County (Anderson)', rate: 0.0225 },
+      { name: 'Delaware County (Muncie)', rate: 0.015 }, { name: 'Vigo County (Terre Haute)', rate: 0.02 },
+      { name: 'Clark County', rate: 0.02 }, { name: 'Floyd County', rate: 0.0135 },
+      { name: 'Howard County (Kokomo)', rate: 0.0195 }, { name: 'Wayne County (Richmond)', rate: 0.015 },
+      { name: 'Bartholomew County (Columbus)', rate: 0.0175 }, { name: 'Porter County', rate: 0.005 }
+    ],
+    KY: [
+      { name: 'Louisville (Jefferson Co.)', rate: 0.022 }, { name: 'Lexington (Fayette Co.)', rate: 0.0225 },
+      { name: 'Bowling Green', rate: 0.0185 }, { name: 'Owensboro', rate: 0.0178 },
+      { name: 'Covington', rate: 0.0245 }, { name: 'Florence', rate: 0.02 },
+      { name: 'Paducah', rate: 0.02 }, { name: 'Richmond', rate: 0.02 },
+      { name: 'Henderson', rate: 0.01 }, { name: 'Elizabethtown', rate: 0.0135 },
+      { name: 'Frankfort', rate: 0.0195 }, { name: 'Hopkinsville', rate: 0.02 },
+      { name: 'Ashland', rate: 0.02 }, { name: 'Georgetown', rate: 0.01 }
+    ],
+    MD: [
+      { name: 'Allegany County', rate: 0.0303 }, { name: 'Anne Arundel County', rate: 0.027 },
+      { name: 'Baltimore City', rate: 0.032 }, { name: 'Baltimore County', rate: 0.032 },
+      { name: 'Calvert County', rate: 0.03 }, { name: 'Caroline County', rate: 0.032 },
+      { name: 'Carroll County', rate: 0.0303 }, { name: 'Cecil County', rate: 0.028 },
+      { name: 'Charles County', rate: 0.0303 }, { name: 'Dorchester County', rate: 0.032 },
+      { name: 'Frederick County', rate: 0.0296 }, { name: 'Garrett County', rate: 0.0265 },
+      { name: 'Harford County', rate: 0.0306 }, { name: 'Howard County', rate: 0.032 },
+      { name: 'Kent County', rate: 0.032 }, { name: 'Montgomery County', rate: 0.032 },
+      { name: "Prince George's County", rate: 0.032 }, { name: "Queen Anne's County", rate: 0.032 },
+      { name: "St. Mary's County", rate: 0.03 }, { name: 'Somerset County', rate: 0.032 },
+      { name: 'Talbot County', rate: 0.024 }, { name: 'Washington County', rate: 0.03 },
+      { name: 'Wicomico County', rate: 0.032 }, { name: 'Worcester County', rate: 0.0225 }
+    ],
+    MI: [
+      { name: 'Albion', rate: 0.01 }, { name: 'Battle Creek', rate: 0.01 },
+      { name: 'Benton Harbor', rate: 0.01 }, { name: 'Big Rapids', rate: 0.01 },
+      { name: 'Detroit', rate: 0.024 }, { name: 'East Lansing', rate: 0.01 },
+      { name: 'Flint', rate: 0.01 }, { name: 'Grand Rapids', rate: 0.015 },
+      { name: 'Grayling', rate: 0.01 }, { name: 'Hamtramck', rate: 0.01 },
+      { name: 'Highland Park', rate: 0.02 }, { name: 'Hudson', rate: 0.01 },
+      { name: 'Ionia', rate: 0.01 }, { name: 'Jackson', rate: 0.01 },
+      { name: 'Lansing', rate: 0.01 }, { name: 'Lapeer', rate: 0.01 },
+      { name: 'Muskegon', rate: 0.01 }, { name: 'Muskegon Heights', rate: 0.01 },
+      { name: 'Pontiac', rate: 0.01 }, { name: 'Port Huron', rate: 0.01 },
+      { name: 'Portland', rate: 0.01 }, { name: 'Saginaw', rate: 0.015 },
+      { name: 'Springfield', rate: 0.01 }, { name: 'Walker', rate: 0.01 }
+    ],
+    MO: [
+      { name: 'Kansas City', rate: 0.01 }, { name: 'St. Louis', rate: 0.01 }
+    ],
+    NY: [
+      { name: 'New York City', rate: 0.03876 }, { name: 'Yonkers', rate: 0.0161 }
+    ],
+    OH: [
+      { name: 'Columbus', rate: 0.025 }, { name: 'Cleveland', rate: 0.025 },
+      { name: 'Cincinnati', rate: 0.018 }, { name: 'Toledo', rate: 0.025 },
+      { name: 'Akron', rate: 0.025 }, { name: 'Dayton', rate: 0.025 },
+      { name: 'Parma', rate: 0.025 }, { name: 'Canton', rate: 0.025 },
+      { name: 'Youngstown', rate: 0.0275 }, { name: 'Lorain', rate: 0.025 },
+      { name: 'Hamilton', rate: 0.02 }, { name: 'Springfield', rate: 0.024 },
+      { name: 'Kettering', rate: 0.0225 }, { name: 'Elyria', rate: 0.0225 },
+      { name: 'Lakewood', rate: 0.015 }, { name: 'Cuyahoga Falls', rate: 0.02 },
+      { name: 'Euclid', rate: 0.0285 }, { name: 'Mansfield', rate: 0.02 },
+      { name: 'Newark', rate: 0.0175 }, { name: 'Mentor', rate: 0.02 },
+      { name: 'Middletown', rate: 0.0175 }, { name: 'Beavercreek', rate: 0.01 },
+      { name: 'Dublin', rate: 0.02 }, { name: 'Westerville', rate: 0.02 }
+    ],
+    OR: [
+      { name: 'Portland (Metro)', rate: 0.01 }, { name: 'Multnomah County', rate: 0.015 }
+    ],
+    PA: [
+      { name: 'Philadelphia', rate: 0.0375 }, { name: 'Pittsburgh', rate: 0.03 },
+      { name: 'Scranton', rate: 0.034 }, { name: 'Allentown', rate: 0.01975 },
+      { name: 'Erie', rate: 0.0165 }, { name: 'Reading', rate: 0.036 },
+      { name: 'Bethlehem', rate: 0.01 }, { name: 'Lancaster', rate: 0.011 },
+      { name: 'Harrisburg', rate: 0.02 }, { name: 'Altoona', rate: 0.012 },
+      { name: 'York', rate: 0.0125 }, { name: 'Wilkes-Barre', rate: 0.03 },
+      { name: 'Chester', rate: 0.0275 }, { name: 'Williamsport', rate: 0.015 },
+      { name: 'Easton', rate: 0.0195 }, { name: 'Lebanon', rate: 0.015 }
+    ]
   };
 
   /* ---------------------------------------------------------------------- */
