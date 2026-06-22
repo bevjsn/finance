@@ -269,6 +269,34 @@
         </div>
       </div>
 
+      <div class="card">
+        <h3>Retirement Plan</h3>
+        <div class="field">
+          <label>Desired annual spending <span class="hint">(today's $)</span></label>
+          <div class="input-prefix"><span>$</span><input type="number" id="input-ret-spending" value="120000" min="0" step="5000"></div>
+        </div>
+        <div class="field">
+          <label>Social Security <span class="hint">(annual at age 67)</span></label>
+          <div class="input-prefix"><span>$</span><input type="number" id="input-ret-ss" value="40000" min="0" step="1000"></div>
+        </div>
+        <div class="field">
+          <label>Claim Social Security at</label>
+          <select id="input-ret-claim">
+            <option value="62">Age 62 (early, smaller)</option>
+            <option value="67" selected>Age 67 (full benefit)</option>
+            <option value="70">Age 70 (delayed, larger)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Plan to age <span class="slider-val" id="ret-planage-val">95</span></label>
+          <input type="range" id="input-ret-planage" min="80" max="100" step="1" value="95">
+        </div>
+        <div class="field">
+          <label>Inflation <span class="slider-val" id="ret-inflation-val">2.5%</span></label>
+          <input type="range" id="input-ret-inflation" min="1" max="5" step="0.1" value="2.5">
+        </div>
+      </div>
+
     </aside>
 
     <!-- Content column: tab bar + routed pages -->
@@ -337,6 +365,23 @@
 
         <!-- ===== Retirement ===== -->
         <section class="page" data-page="retirement">
+          <div class="panel">
+            <div class="panel-head"><h3>Retirement Readiness</h3></div>
+            <div class="stat-grid" id="ret-readiness"></div>
+            <p class="page-note">Models the full lifecycle: you accumulate until retirement, then draw down to cover spending (after Social Security), pulling from taxable → tax-deferred → Roth, with required minimum distributions starting at age 73. Set your spending, Social Security, and plan-to age in the sidebar.</p>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><h3>Retirement Drawdown</h3></div>
+            <div class="chart-box" style="height:260px"><canvas id="chart-drawdown"></canvas></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><h3>Social Security Timing</h3></div>
+            <div class="ss-grid" id="ss-compare"></div>
+            <p class="page-note">Claiming earlier means smaller checks for more years; waiting means larger checks for fewer years. Lifetime figures are in today's dollars through your plan-to age.</p>
+          </div>
+
           <div class="panel">
             <div class="panel-head"><h3>Portfolio by Bucket</h3></div>
             <div class="chart-box" style="height:280px"><canvas id="chart-portfolio"></canvas></div>

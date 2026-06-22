@@ -54,41 +54,51 @@
     }
   };
 
-  /* Plugin: amber dashed vertical line at retirement year with a badge */
+  /* Draw one dashed vertical marker with a badge label. */
+  function drawMarker(chart, index, label, color, row) {
+    if (index == null || index < 0) return;
+    const xScale = chart.scales.x;
+    const yArea = chart.chartArea;
+    const x = xScale.getPixelForValue(index);
+    if (x == null || isNaN(x)) return;
+    const ctx = chart.ctx;
+    ctx.save();
+    ctx.beginPath();
+    ctx.setLineDash([5, 4]);
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = color;
+    ctx.moveTo(x, yArea.top);
+    ctx.lineTo(x, yArea.bottom);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.font = '600 10px ' + FONT;
+    const tw = ctx.measureText(label).width;
+    const padX = 6, bh = 18;
+    let bx = x - (tw + padX * 2) / 2;
+    bx = Math.max(yArea.left, Math.min(bx, yArea.right - (tw + padX * 2)));
+    const by = yArea.top + 2 + (row || 0) * (bh + 3);
+    ctx.fillStyle = color;
+    if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(bx, by, tw + padX * 2, bh, 4); ctx.fill(); }
+    else { ctx.fillRect(bx, by, tw + padX * 2, bh); }
+    ctx.fillStyle = '#0a0f1e';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, bx + padX, by + bh / 2);
+    ctx.restore();
+  }
+
+  /* Plugin: one or more dashed vertical markers (retirement, RMD, etc.) */
   const retirementLinePlugin = {
     id: 'retirementLine',
-    afterDraw: function (chart, args, opts) {
+    afterDraw: function (chart) {
       const cfg = chart.config.options.plugins.retirementLine;
-      if (!cfg || cfg.index == null || cfg.index < 0) return;
-      const xScale = chart.scales.x;
-      const yArea = chart.chartArea;
-      const x = xScale.getPixelForValue(cfg.index);
-      if (x == null || isNaN(x)) return;
-      const ctx = chart.ctx;
-      ctx.save();
-      ctx.beginPath();
-      ctx.setLineDash([5, 4]);
-      ctx.lineWidth = 1.5;
-      ctx.strokeStyle = AMBER;
-      ctx.moveTo(x, yArea.top);
-      ctx.lineTo(x, yArea.bottom);
-      ctx.stroke();
-      // badge
-      ctx.setLineDash([]);
-      const text = cfg.label || 'Retirement';
-      ctx.font = '600 10px ' + FONT;
-      const tw = ctx.measureText(text).width;
-      const padX = 6, bh = 18;
-      let bx = x - (tw + padX * 2) / 2;
-      bx = Math.max(yArea.left, Math.min(bx, yArea.right - (tw + padX * 2)));
-      ctx.fillStyle = AMBER;
-      const by = yArea.top + 2;
-      if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(bx, by, tw + padX * 2, bh, 4); ctx.fill(); }
-      else { ctx.fillRect(bx, by, tw + padX * 2, bh); }
-      ctx.fillStyle = '#0a0f1e';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(text, bx + padX, by + bh / 2);
-      ctx.restore();
+      if (!cfg) return;
+      if (cfg.markers) {
+        cfg.markers.forEach(function (m, i) {
+          drawMarker(chart, m.index, m.label, m.color || AMBER, m.row != null ? m.row : i);
+        });
+      } else if (cfg.index != null) {
+        drawMarker(chart, cfg.index, cfg.label || 'Retirement', AMBER, 0);
+      }
     }
   };
   if (global.Chart) Chart.register(retirementLinePlugin);
@@ -225,6 +235,38 @@
     });
   }
 
+  /* ---- Retirement drawdown (full lifecycle assets) -------------------- */
+  function drawdown(canvasId, rp) {
+    const labels = rp.rows.map(function (r) { return 'Age ' + r.age; });
+    const lasts = rp.lastsToPlan;
+    const line = lasts ? GREEN : RED;
+    const fill = lasts ? 'rgba(34,197,94,0.16)' : 'rgba(239,68,68,0.16)';
+    const startAge = rp.rows[0].age;
+    const markers = [{ index: rp.retAge - startAge, label: 'Retirement', color: AMBER, row: 0 }];
+    if (73 > rp.retAge && 73 <= rp.endAge) {
+      markers.push({ index: 73 - startAge, label: 'RMDs (73)', color: '#a855f7', row: 0 });
+    }
+    if (rp.depleteAge) {
+      markers.push({ index: rp.depleteAge - startAge, label: 'Depleted', color: RED, row: 1 });
+    }
+    const data = {
+      labels: labels,
+      datasets: [{
+        label: 'Total Assets', data: rp.rows.map(function (r) { return r.totalAssets; }),
+        borderColor: line, backgroundColor: fill, fill: true,
+        tension: 0.3, pointRadius: 0, borderWidth: 2
+      }]
+    };
+    render('drawdown', canvasId, 'line', data, {
+      scales: baseScales(),
+      plugins: {
+        legend: { display: false },
+        tooltip: tooltip,
+        retirementLine: { markers: markers }
+      }
+    });
+  }
+
   function render(key, canvasId, type, data, options) {
     const el = document.getElementById(canvasId);
     if (!el) return;
@@ -249,6 +291,7 @@
     portfolio: portfolio,
     taxDonut: taxDonut,
     cashFlow: cashFlow,
+    drawdown: drawdown,
     fmtMoney: fmtMoney,
     fmtAxis: fmtAxis,
     destroy: destroy

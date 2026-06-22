@@ -130,7 +130,22 @@ html, body {
 }
 .stat-label { font-size: 11px; color: var(--text-faint); text-transform: uppercase; letter-spacing: .3px; }
 .stat-val { font-size: 18px; font-weight: 700; }
-.stat-val .bad { color: var(--red); font-size: 14px; }
+.stat-val.good { color: var(--green); }
+.stat-val.bad { color: var(--red); }
+
+/* Social Security timing cards */
+.ss-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.ss-card {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px;
+}
+.ss-card.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.ss-claim { font-size: 12px; color: var(--text-dim); font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.ss-tag { font-size: 9px; text-transform: uppercase; letter-spacing: .3px; background: var(--accent); color: #fff; padding: 2px 6px; border-radius: 10px; }
+.ss-monthly { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+.ss-monthly span { font-size: 13px; font-weight: 500; color: var(--text-faint); }
+.ss-detail { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+.ss-detail strong { color: var(--text); }
 
 .page-note { font-size: 12px; color: var(--text-faint); margin-top: 14px; line-height: 1.5; }
 .empty-note {
@@ -493,6 +508,7 @@ input[type="range"]::-moz-range-thumb {
     padding: 16px 14px 32px;
   }
   .stat-grid { grid-template-columns: 1fr 1fr; }
+  .ss-grid { grid-template-columns: 1fr; }
 
   /* sidebar becomes a collapsible drawer; hidden by default on phones */
   body.sidebar-open .sidebar { display: block; }

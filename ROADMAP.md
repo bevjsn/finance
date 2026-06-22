@@ -55,11 +55,17 @@ step can be skipped; values flow into the shared store and persist. Hosting:
 GitHub Pages via "Deploy from a branch" (Settings → Pages) serves the static
 site at https://bevjsn.github.io/finance/ — no build step, no login to view.
 
-### Phase 3 — Generic retirement depth *(prioritized over physician modules)*
-- Decumulation / spend-down phase modeling
-- Tax-efficient withdrawal sequencing (taxable → tax-deferred → Roth)
-- Social Security claiming optimizer (62 / 67 / 70)
-- RMD modeling at 73; lifetime tax map
+### Phase 3 — Generic retirement depth ✅ (shipped)
+- Full-lifecycle projection: accumulate to retirement, then draw down to a
+  plan-to age, with a "money lasts to / depletes at" readiness summary
+- Tax-efficient withdrawal sequencing (cash → taxable → tax-deferred → Roth)
+- Required minimum distributions starting at age 73 (Uniform Lifetime Table)
+- Social Security claiming comparison (62 / 67 / 70) with monthly + lifetime
+- Lifetime retirement-tax total; drawdown chart with retirement/RMD markers
+- New "Retirement Plan" sidebar inputs (spending, plan-to age, SS, inflation)
+
+  *Approximations: capital-gains tax modeled as a flat effective drag; Social
+  Security taxed at 85%; figures for planning, not filing.*
 
 ### Phase 4 — Scenarios & success score
 Named plans (save / duplicate / compare two side by side) and a headline

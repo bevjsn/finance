@@ -127,6 +127,14 @@
     $('input-years').value = state.projection.years;
     $('return-val').textContent = state.projection.returnPct + '%';
     $('years-val').textContent = state.projection.years + ' yrs';
+
+    $('input-ret-spending').value = state.retirement.spending;
+    $('input-ret-ss').value = state.retirement.ssAnnual;
+    $('input-ret-claim').value = state.retirement.ssClaimAge;
+    $('input-ret-planage').value = state.retirement.planToAge;
+    $('input-ret-inflation').value = state.retirement.inflation;
+    $('ret-planage-val').textContent = state.retirement.planToAge;
+    $('ret-inflation-val').textContent = state.retirement.inflation + '%';
   }
 
   /* ------------------------------------------------------------------ */
@@ -164,6 +172,12 @@
 
     state.projection.returnPct = num($('input-return').value);
     state.projection.years = num($('input-years').value);
+
+    state.retirement.spending = num($('input-ret-spending').value);
+    state.retirement.ssAnnual = num($('input-ret-ss').value);
+    state.retirement.ssClaimAge = num($('input-ret-claim').value) || 67;
+    state.retirement.planToAge = num($('input-ret-planage').value) || 95;
+    state.retirement.inflation = num($('input-ret-inflation').value);
   }
 
   /* ------------------------------------------------------------------ */
@@ -249,6 +263,31 @@
   }
 
   function renderRetirement(d) {
+    // --- Phase 3: full lifecycle readiness, drawdown, Social Security ---
+    const rp = Calc.retirementProjection(state);
+    const lastsVal = rp.lastsToPlan
+      ? 'Lasts to ' + rp.endAge + '+'
+      : 'Depletes at ' + rp.depleteAge;
+    $('ret-readiness').innerHTML = statCards([
+      { label: 'Money', val: lastsVal, cls: rp.lastsToPlan ? 'good' : 'bad' },
+      { label: 'Assets at retirement (age ' + rp.retAge + ')', val: fmtMoney(rp.retirementAssets) },
+      { label: 'Est. balance at age ' + rp.endAge, val: fmtMoney(rp.endingAssets) },
+      { label: 'First-year spending need', val: fmtMoney(rp.firstYearSpending) },
+      { label: 'Social Security / yr', val: fmtMoney(rp.ssAnnualAtClaim) },
+      { label: 'Lifetime taxes in retirement', val: fmtMoney(rp.lifetimeTax) }
+    ]);
+    Charts.drawdown('chart-drawdown', rp);
+
+    const ss = Calc.socialSecurity(state);
+    $('ss-compare').innerHTML = ss.map(function (o) {
+      return '<div class="ss-card' + (o.selected ? ' selected' : '') + '">' +
+        '<div class="ss-claim">Claim at ' + o.claimAge + (o.selected ? ' <span class="ss-tag">current</span>' : '') + '</div>' +
+        '<div class="ss-monthly">' + fmtMoney(o.monthly) + '<span>/mo</span></div>' +
+        '<div class="ss-detail">' + (o.factor * 100).toFixed(0) + '% of full benefit</div>' +
+        '<div class="ss-detail">Lifetime: <strong>' + fmtMoney(o.lifetime) + '</strong></div>' +
+        '</div>';
+    }).join('');
+
     Charts.portfolio('chart-portfolio', d.proj);
 
     const plan = Calc.rothPlan(state);
@@ -322,8 +361,9 @@
 
   function statCards(stats) {
     return stats.map(function (s) {
+      const cls = s.cls ? ' ' + s.cls : '';
       return '<div class="stat-card"><span class="stat-label">' + s.label +
-        '</span><span class="stat-val">' + s.val + '</span></div>';
+        '</span><span class="stat-val' + cls + '">' + s.val + '</span></div>';
     }).join('');
   }
 
@@ -393,6 +433,8 @@
 
     $('input-return').addEventListener('input', function () { $('return-val').textContent = this.value + '%'; });
     $('input-years').addEventListener('input', function () { $('years-val').textContent = this.value + ' yrs'; });
+    $('input-ret-planage').addEventListener('input', function () { $('ret-planage-val').textContent = this.value; });
+    $('input-ret-inflation').addEventListener('input', function () { $('ret-inflation-val').textContent = this.value + '%'; });
 
     $('btn-pdf').addEventListener('click', function () { window.print(); });
 
