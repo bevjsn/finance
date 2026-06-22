@@ -51,8 +51,10 @@
     const sel = $('input-city');
     const out = cityOptionsHtml(state.state, state.city);
     sel.innerHTML = out.html;
-    sel.disabled = out.count === 0;
     sel.value = state.city || '';
+    // Only show the city picker for states that actually levy a local income tax.
+    const field = $('city-field');
+    if (field) field.style.display = out.anyTaxed ? '' : 'none';
     const hint = $('city-hint');
     if (hint) hint.textContent = cityHintText(out);
   }
@@ -429,7 +431,8 @@
     const sel = $('wiz-city');
     const out = cityOptionsHtml($('wiz-state').value, state.city);
     sel.innerHTML = out.html;
-    sel.disabled = out.count === 0;
+    const field = $('wiz-city-field');
+    if (field) field.style.display = out.anyTaxed ? '' : 'none';
     const hint = $('wiz-city-hint');
     if (hint) hint.textContent = cityHintText(out);
   }

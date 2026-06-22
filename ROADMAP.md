@@ -1,6 +1,6 @@
-# WealthMD — Product Roadmap
+# Attending Launch — Product Roadmap
 
-A phased plan for evolving WealthMD from a single-page calculator into a
+A phased plan for evolving Attending Launch from a single-page calculator into a
 Boldin-style financial planning app that you live in over time.
 
 ## Decisions locked in

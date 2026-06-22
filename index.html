@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WealthMD — Physician Financial Planning</title>
+  <title>Attending Launch — Physician Financial Planning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
@@ -14,7 +14,7 @@
   <div class="modal-overlay" id="onboard-modal">
     <div class="modal wizard">
       <div class="wizard-head">
-        <div class="modal-logo"><span class="logo-mark">W</span> WealthMD</div>
+        <div class="modal-logo"><span class="logo-mark">AL</span> Attending Launch</div>
         <div class="wizard-progress"><div class="wizard-progress-bar" id="wiz-progress"></div></div>
         <div class="wizard-step-count" id="wiz-step-count">Step 1 of 6</div>
       </div>
@@ -22,7 +22,7 @@
       <div class="wizard-body">
         <!-- Step 0: welcome -->
         <div class="wizard-step active" data-step="0">
-          <h2>Welcome to WealthMD</h2>
+          <h2>Welcome to Attending Launch</h2>
           <p class="modal-sub">A financial roadmap built for physicians. We'll walk through your profile, accounts, and debts to build your plan — every question is optional, so skip anything you're not sure about and change it later.</p>
         </div>
 
@@ -48,7 +48,7 @@
             <label>State</label>
             <select id="wiz-state"></select>
           </div>
-          <div class="modal-field">
+          <div class="modal-field" id="wiz-city-field">
             <label>City (local tax)</label>
             <select id="wiz-city"></select>
             <p class="field-hint" id="wiz-city-hint"></p>
@@ -141,8 +141,8 @@
   <nav class="topnav">
     <div class="nav-left">
       <button class="nav-toggle" id="nav-toggle" aria-label="Toggle inputs">☰ Inputs</button>
-      <span class="logo-mark">W</span>
-      <span class="nav-title">WealthMD</span>
+      <span class="logo-mark">AL</span>
+      <span class="nav-title">Attending Launch</span>
       <span class="nav-tag">2025 Tax Year</span>
     </div>
     <button class="btn-ghost" id="btn-pdf">⬇ Download PDF</button>
@@ -181,7 +181,7 @@
           <label>State</label>
           <select id="input-state"></select>
         </div>
-        <div class="field">
+        <div class="field" id="city-field">
           <label>City (local tax)</label>
           <select id="input-city"></select>
           <p class="field-hint" id="city-hint"></p>

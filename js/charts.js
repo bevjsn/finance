@@ -231,7 +231,7 @@
     const baseOptions = {
       responsive: true, maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
-      animation: { duration: 250 }
+      animation: { duration: 750, easing: 'easeInOutCubic' }
     };
     const opts = Object.assign(baseOptions, options);
     if (charts[key]) {
