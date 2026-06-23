@@ -103,6 +103,10 @@
       if (!this.available) return;
       const list = this.listScenarios().filter(function (s) { return s.id !== id; });
       try { localStorage.setItem(SCENARIO_KEY, JSON.stringify(list)); } catch (e) { /* ignore */ }
+    },
+    replaceScenarios: function (list) {
+      if (!this.available) return;
+      try { localStorage.setItem(SCENARIO_KEY, JSON.stringify(list || [])); } catch (e) { /* ignore */ }
     }
   };
 
@@ -111,13 +115,18 @@
     VERSION: VERSION,
     adapter: LocalAdapter,
     available: LocalAdapter.available,
-    save: function (plan) { return this.adapter.save(plan); },
-    saveNow: function (plan) { return this.adapter.saveNow(plan); },
+    onWrite: null,   // optional hook fired after any write (used by the cloud mirror)
+    _fireWrite: function () {
+      if (typeof this.onWrite === 'function') { try { this.onWrite(); } catch (e) { /* ignore */ } }
+    },
+    save: function (plan) { const r = this.adapter.save(plan); this._fireWrite(); return r; },
+    saveNow: function (plan) { const r = this.adapter.saveNow(plan); this._fireWrite(); return r; },
     load: function () { return this.adapter.load(); },
     clear: function () { return this.adapter.clear(); },
     listScenarios: function () { return this.adapter.listScenarios(); },
-    saveScenario: function (name, plan) { return this.adapter.saveScenario(name, plan); },
-    deleteScenario: function (id) { return this.adapter.deleteScenario(id); }
+    saveScenario: function (name, plan) { const r = this.adapter.saveScenario(name, plan); this._fireWrite(); return r; },
+    deleteScenario: function (id) { const r = this.adapter.deleteScenario(id); this._fireWrite(); return r; },
+    replaceScenarios: function (list) { return this.adapter.replaceScenarios(list); }
   };
 
   global.Persist = Persist;

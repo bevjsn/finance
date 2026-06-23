@@ -78,9 +78,18 @@ site at https://bevjsn.github.io/finance/ — no build step, no login to view.
 - All five **federal filing statuses** now supported (Single, MFJ, MFS, Head of
   Household, Qualifying Surviving Spouse) across the tax engine and UI.
 
-### Phase 5 — Cloud accounts (login) *(committed)*
-Supabase adapter behind the Phase 0 persist interface + auth → cross-device
-sync and cloud-stored scenarios. Cheap because of the adapter design.
+### Phase 5 — Cloud accounts (login) ✅ (shipped)
+Optional Supabase-backed login + cross-device sync, layered on the local-first
+store (`js/cloud.js`):
+- Passwordless **magic-link** email sign-in.
+- **Local-first mirror**: the browser stays the source of truth (fast, offline),
+  and plan + scenarios sync to one row per user in the background.
+- Account modal in the nav: configure Supabase (URL + anon key, stored locally),
+  sign in / out, status.
+- **Degrades gracefully**: if unconfigured or the SDK is blocked, the app is
+  fully usable local-only — nothing breaks.
+- One-time setup (free Supabase project + one SQL snippet) documented in
+  `CLOUD_SETUP.md`.
 
 ### Phase 6 — Physician-specific modules
 Student loan strategy (PSLF vs. refinance vs. IDR, forgiveness timeline),

@@ -140,6 +140,50 @@
     </div>
   </div>
 
+  <!-- Account / cloud sync modal -->
+  <div class="modal-overlay hidden" id="account-modal">
+    <div class="modal">
+      <div class="modal-logo"><span class="logo-mark">AL</span> Account &amp; Sync</div>
+      <button class="modal-x" id="account-close" aria-label="Close">✕</button>
+
+      <div id="account-sdk-warn" class="account-warn" style="display:none">
+        Couldn't load the sync library (offline or blocked). The app still works
+        locally — your data is saved in this browser.
+      </div>
+
+      <!-- Not configured yet: enter Supabase project details -->
+      <div id="account-config">
+        <p class="modal-sub">Turn on cross-device sync with a free Supabase project. Paste your project URL and anon key (see <strong>CLOUD_SETUP.md</strong>). They're stored only in this browser.</p>
+        <div class="modal-field">
+          <label>Supabase project URL</label>
+          <input type="text" id="supabase-url" placeholder="https://xxxx.supabase.co">
+        </div>
+        <div class="modal-field">
+          <label>Supabase anon key</label>
+          <input type="text" id="supabase-key" placeholder="eyJhbGciOi...">
+        </div>
+        <button class="btn-primary modal-btn" id="account-config-save">Save &amp; reload</button>
+      </div>
+
+      <!-- Configured, signed out: magic-link sign in -->
+      <div id="account-signin" style="display:none">
+        <p class="modal-sub">Sign in with a magic link — no password. We'll email you a one-tap link.</p>
+        <div class="modal-field">
+          <label>Email</label>
+          <input type="email" id="account-email-input" placeholder="you@example.com">
+        </div>
+        <button class="btn-primary modal-btn" id="account-signin-btn">Send magic link</button>
+        <p class="account-msg" id="account-msg"></p>
+      </div>
+
+      <!-- Signed in -->
+      <div id="account-signedin" style="display:none">
+        <p class="modal-sub">Signed in as <strong id="account-email"></strong>. Your plan and scenarios sync automatically across devices.</p>
+        <button class="btn-ghost modal-btn" id="account-signout-btn">Sign out</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Top nav -->
   <nav class="topnav">
     <div class="nav-left">
@@ -148,7 +192,10 @@
       <span class="nav-title">Attending Launch</span>
       <span class="nav-tag">2025 Tax Year</span>
     </div>
-    <button class="btn-ghost" id="btn-pdf">⬇ Download PDF</button>
+    <div class="nav-right">
+      <button class="btn-ghost" id="account-btn">☁ Set up sync</button>
+      <button class="btn-ghost" id="btn-pdf">⬇ Download PDF</button>
+    </div>
   </nav>
 
   <!-- App shell -->
@@ -497,12 +544,14 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/taxes.js"></script>
   <script src="js/calc.js"></script>
   <script src="js/charts.js"></script>
   <script src="js/store.js"></script>
   <script src="js/persist.js"></script>
   <script src="js/router.js"></script>
+  <script src="js/cloud.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

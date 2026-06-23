@@ -594,6 +594,7 @@
     });
 
     wireWizard();
+    wireAccount();
   }
 
   /* ------------------------------------------------------------------ */
@@ -739,6 +740,45 @@
     $('wiz-skip').addEventListener('click', function () { showWizStep(wizStep + 1); });
   }
 
+  /* ---- Account / cloud sync UI (Phase 5) ------------------------------ */
+  function updateAccountUI(st) {
+    const btn = $('account-btn');
+    if (st.signedIn) btn.textContent = '👤 ' + (st.email || 'Account').split('@')[0];
+    else if (st.configured) btn.textContent = 'Sign in';
+    else btn.textContent = '☁ Set up sync';
+    $('account-config').style.display = st.configured ? 'none' : 'block';
+    $('account-signin').style.display = (st.configured && !st.signedIn) ? 'block' : 'none';
+    $('account-signedin').style.display = st.signedIn ? 'block' : 'none';
+    $('account-sdk-warn').style.display = st.sdk ? 'none' : 'block';
+    if (st.signedIn) $('account-email').textContent = st.email || '';
+  }
+
+  function wireAccount() {
+    $('account-btn').addEventListener('click', function () { $('account-modal').classList.remove('hidden'); });
+    $('account-close').addEventListener('click', function () { $('account-modal').classList.add('hidden'); });
+    $('account-config-save').addEventListener('click', function () {
+      if (!global.Cloud) return;
+      const url = $('supabase-url').value.trim();
+      const key = $('supabase-key').value.trim();
+      if (!url || !key) return;
+      global.Cloud.setConfig(url, key);
+      location.reload();
+    });
+    $('account-signin-btn').addEventListener('click', function () {
+      if (!global.Cloud) return;
+      const email = $('account-email-input').value.trim();
+      const msg = $('account-msg');
+      if (!email) { msg.textContent = 'Enter your email.'; return; }
+      msg.textContent = 'Sending…';
+      global.Cloud.signIn(email).then(function () {
+        msg.textContent = 'Check your email for the magic link.';
+      }).catch(function (e) { msg.textContent = 'Error: ' + (e.message || e); });
+    });
+    $('account-signout-btn').addEventListener('click', function () {
+      if (global.Cloud) global.Cloud.signOut();
+    });
+  }
+
   function setDeduction(mode) {
     state.deductions.mode = mode;
     $('ded-standard').classList.toggle('active', mode === 'standard');
@@ -779,6 +819,14 @@
       // heavy compare only computes on entering the tab (not on every keystroke)
       if (pageKey === 'scenarios') renderCompare();
     });
+
+    // optional cloud sync — no-op (local-only) until configured & signed in
+    if (global.Cloud) {
+      Persist.onWrite = function () { global.Cloud.schedulePush(); };
+      global.Cloud.init(updateAccountUI);
+    } else {
+      updateAccountUI({ sdk: false, configured: false, signedIn: false });
+    }
   }
 
   if (document.readyState === 'loading') {
@@ -787,5 +835,10 @@
     init();
   }
 
+  // Exposed for the cloud mirror: re-sync the UI after a remote pull.
+  global.AppUI = {
+    reload: function () { syncSidebarFromState(); renderActive(); },
+    render: renderActive
+  };
   global.WealthMD = { state: state, render: renderActive };
 })(typeof window !== 'undefined' ? window : this);
