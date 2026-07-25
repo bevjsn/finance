@@ -63,7 +63,7 @@
           <p class="modal-sub">Annual gross and how you file.</p>
           <div class="modal-field">
             <label>Annual gross income</label>
-            <div class="input-prefix"><span>$</span><input type="number" id="wiz-income" value="350000" min="0" step="5000"></div>
+            <div class="input-prefix"><span>$</span><input type="text" inputmode="numeric" class="money" id="wiz-income" value="350,000"></div>
           </div>
           <div class="modal-field">
             <label>Filing status</label>
@@ -112,7 +112,7 @@
           </label>
           <div class="modal-field">
             <label>Loan balance</label>
-            <div class="input-prefix"><span>$</span><input type="number" id="wiz-loan-balance" value="220000" min="0" step="1000"></div>
+            <div class="input-prefix"><span>$</span><input type="text" inputmode="numeric" class="money" id="wiz-loan-balance" value="220,000"></div>
           </div>
           <div class="modal-field">
             <label>Interest rate <span class="hint">(%)</span></label>
@@ -120,7 +120,7 @@
           </div>
           <div class="modal-field">
             <label>Annual payment</label>
-            <div class="input-prefix"><span>$</span><input type="number" id="wiz-loan-payment" value="24000" min="0" step="500"></div>
+            <div class="input-prefix"><span>$</span><input type="text" inputmode="numeric" class="money" id="wiz-loan-payment" value="24,000"></div>
           </div>
         </div>
 
@@ -220,7 +220,7 @@
         </div>
         <div class="field">
           <label>Annual gross income</label>
-          <div class="input-prefix"><span>$</span><input type="number" id="input-income" value="350000" min="0" step="5000"></div>
+          <div class="input-prefix"><span>$</span><input type="text" inputmode="numeric" class="money" id="input-income" value="350,000"></div>
         </div>
         <div class="field">
           <label>Filing status</label>
@@ -251,16 +251,16 @@
         </div>
         <div id="itemize-fields" style="display:none">
           <div class="field"><label>Mortgage interest</label>
-            <div class="input-prefix"><span>$</span><input type="number" id="ded-mortgage" value="0" min="0" step="500"></div>
+            <div class="input-prefix"><span>$</span><input type="text" inputmode="numeric" class="money" id="ded-mortgage" value="0"></div>
           </div>
           <div class="field"><label>SALT <span class="hint">(capped $10k)</span></label>
-            <div class="input-prefix"><span>$</span><input type="number" id="ded-salt" value="0" min="0" step="500"></div>
+            <div class="input-prefix"><span>$</span><input type="text" inputmode="numeric" class="money" id="ded-salt" value="0"></div>
           </div>
           <div class="field"><label>Charitable contributions</label>
-            <div class="input-prefix"><span>$</span><input type="number" id="ded-charity" value="0" min="0" step="500"></div>
+            <div class="input-prefix"><span>$</span><input type="text" inputmode="numeric" class="money" id="ded-charity" value="0"></div>
           </div>
           <div class="field"><label>Medical expenses <span class="hint">(over 7.5% AGI)</span></label>
-            <div class="input-prefix"><span>$</span><input type="number" id="ded-medical" value="0" min="0" step="500"></div>
+            <div class="input-prefix"><span>$</span><input type="text" inputmode="numeric" class="money" id="ded-medical" value="0"></div>
           </div>
         </div>
       </div>
@@ -301,13 +301,13 @@
             <input type="checkbox" id="loan-toggle" checked>
           </label>
           <div class="field"><label>Loan balance</label>
-            <div class="input-prefix"><span>$</span><input type="number" id="loan-balance" value="220000" min="0" step="1000"></div>
+            <div class="input-prefix"><span>$</span><input type="text" inputmode="numeric" class="money" id="loan-balance" value="220,000"></div>
           </div>
           <div class="field"><label>Interest rate <span class="hint">(%)</span></label>
             <input type="number" id="loan-rate" value="6.5" min="0" step="0.1">
           </div>
           <div class="field"><label>Annual payment</label>
-            <div class="input-prefix"><span>$</span><input type="number" id="loan-payment" value="24000" min="0" step="500"></div>
+            <div class="input-prefix"><span>$</span><input type="text" inputmode="numeric" class="money" id="loan-payment" value="24,000"></div>
           </div>
         </div>
       </div>
@@ -325,11 +325,11 @@
         <h3>Retirement Plan</h3>
         <div class="field">
           <label>Desired annual spending <span class="hint">(today's $)</span></label>
-          <div class="input-prefix"><span>$</span><input type="number" id="input-ret-spending" value="120000" min="0" step="5000"></div>
+          <div class="input-prefix"><span>$</span><input type="text" inputmode="numeric" class="money" id="input-ret-spending" value="120,000"></div>
         </div>
         <div class="field">
           <label>Social Security <span class="hint">(annual at age 67)</span></label>
-          <div class="input-prefix"><span>$</span><input type="number" id="input-ret-ss" value="40000" min="0" step="1000"></div>
+          <div class="input-prefix"><span>$</span><input type="text" inputmode="numeric" class="money" id="input-ret-ss" value="40,000"></div>
         </div>
         <div class="field">
           <label>Claim Social Security at</label>

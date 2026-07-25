@@ -8,8 +8,36 @@
 
   const state = Store.state;          // live reference; hydrate() mutates in place
   const $ = function (id) { return document.getElementById(id); };
-  const num = function (v) { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+  // Strip commas/spaces before parsing — money inputs are comma-formatted text.
+  const num = function (v) { const n = parseFloat(String(v).replace(/[,\s$]/g, '')); return isNaN(n) ? 0 : n; };
   const fmtMoney = function (v) { return '$' + Math.round(v).toLocaleString('en-US'); };
+  const fmtNum = function (v) { return Math.round(v || 0).toLocaleString('en-US'); };
+
+  /* Live comma formatting for .money inputs, preserving the caret. */
+  function formatMoneyInput(el) {
+    const raw = el.value;
+    const digits = raw.replace(/[^0-9]/g, '');
+    const formatted = digits ? Number(digits).toLocaleString('en-US') : '';
+    if (formatted === raw) return;
+    const caret = el.selectionStart == null ? formatted.length : el.selectionStart;
+    let digitsBefore = 0;
+    for (let i = 0; i < caret && i < raw.length; i++) {
+      if (raw[i] >= '0' && raw[i] <= '9') digitsBefore++;
+    }
+    el.value = formatted;
+    let pos = 0, seen = 0;
+    while (pos < formatted.length && seen < digitsBefore) {
+      if (formatted[pos] >= '0' && formatted[pos] <= '9') seen++;
+      pos++;
+    }
+    try { el.setSelectionRange(pos, pos); } catch (e) { /* unfocused */ }
+  }
+  // Capture phase: format BEFORE any bubbled handler reads the value.
+  document.addEventListener('input', function (e) {
+    if (e.target && e.target.classList && e.target.classList.contains('money')) {
+      formatMoneyInput(e.target);
+    }
+  }, true);
   const fmtPct = function (v) { return (v * 100).toFixed(1) + '%'; };
 
   let activePage = 'overview';
@@ -69,12 +97,12 @@
       '<div class="bucket-input balance">' +
       '<span class="bucket-input-tag">Balance now</span>' +
       '<div class="input-prefix sm"><span>$</span>' +
-      '<input type="number" class="num bucket-balance" data-key="' + b.key + '" value="' + v.balance + '" min="0" step="1000" aria-label="' + b.label + ' current balance"></div>' +
+      '<input type="text" inputmode="numeric" class="money bucket-balance" data-key="' + b.key + '" value="' + fmtNum(v.balance) + '" aria-label="' + b.label + ' current balance"></div>' +
       '</div>' +
       '<div class="bucket-input contrib">' +
       '<span class="bucket-input-tag">Adds / yr</span>' +
       '<div class="input-prefix sm"><span>$</span>' +
-      '<input type="number" class="num bucket-contrib" data-key="' + b.key + '" value="' + v.contrib + '" min="0" step="500" aria-label="' + b.label + ' annual contribution"></div>' +
+      '<input type="text" inputmode="numeric" class="money bucket-contrib" data-key="' + b.key + '" value="' + fmtNum(v.contrib) + '" aria-label="' + b.label + ' annual contribution"></div>' +
       '</div>' +
       '</div>' +
       '<div class="warn" id="warn-' + b.key + '"></div>' +
@@ -98,7 +126,7 @@
   function syncSidebarFromState() {
     $('input-age').value = state.age;
     $('input-retire').value = state.retirementAge;
-    $('input-income').value = state.income;
+    $('input-income').value = fmtNum(state.income);
     $('input-filing').value = state.filing;
     $('input-state').value = state.state;
     buildCityOptions();
@@ -106,10 +134,10 @@
     $('ded-standard').classList.toggle('active', state.deductions.mode !== 'itemize');
     $('ded-itemize').classList.toggle('active', state.deductions.mode === 'itemize');
     $('itemize-fields').style.display = state.deductions.mode === 'itemize' ? 'block' : 'none';
-    $('ded-mortgage').value = state.deductions.mortgage;
-    $('ded-salt').value = state.deductions.salt;
-    $('ded-charity').value = state.deductions.charity;
-    $('ded-medical').value = state.deductions.medical;
+    $('ded-mortgage').value = fmtNum(state.deductions.mortgage);
+    $('ded-salt').value = fmtNum(state.deductions.salt);
+    $('ded-charity').value = fmtNum(state.deductions.charity);
+    $('ded-medical').value = fmtNum(state.deductions.medical);
 
     $('match-toggle').checked = !!state.match.enabled;
     $('match-rate').value = state.match.rateCents;
@@ -118,15 +146,15 @@
     buildBuckets();
 
     $('loan-toggle').checked = !!state.loans.enabled;
-    $('loan-balance').value = state.loans.balance;
+    $('loan-balance').value = fmtNum(state.loans.balance);
     $('loan-rate').value = state.loans.rate;
-    $('loan-payment').value = state.loans.payment;
+    $('loan-payment').value = fmtNum(state.loans.payment);
 
     $('input-return').value = state.projection.returnPct;
     $('return-val').textContent = state.projection.returnPct + '%';
 
-    $('input-ret-spending').value = state.retirement.spending;
-    $('input-ret-ss').value = state.retirement.ssAnnual;
+    $('input-ret-spending').value = fmtNum(state.retirement.spending);
+    $('input-ret-ss').value = fmtNum(state.retirement.ssAnnual);
     $('input-ret-claim').value = state.retirement.ssClaimAge;
     $('input-ret-planage').value = state.retirement.planToAge;
     $('input-ret-inflation').value = state.retirement.inflation;
@@ -565,8 +593,8 @@
       '<input type="text" class="offer-name" value="' + esc(o.name) + '" maxlength="40" aria-label="Offer name">' +
       '<button class="offer-remove" title="Remove offer" aria-label="Remove offer">✕</button>' +
       '</div>' +
-      '<div class="field"><label>Salary</label><div class="input-prefix"><span>$</span><input type="number" class="offer-salary" value="' + o.salary + '" min="0" step="5000"></div></div>' +
-      '<div class="field"><label>Signing bonus <span class="hint">(year 1)</span></label><div class="input-prefix"><span>$</span><input type="number" class="offer-bonus" value="' + o.bonus + '" min="0" step="1000"></div></div>' +
+      '<div class="field"><label>Salary</label><div class="input-prefix"><span>$</span><input type="text" inputmode="numeric" class="money offer-salary" value="' + fmtNum(o.salary) + '"></div></div>' +
+      '<div class="field"><label>Signing bonus <span class="hint">(year 1)</span></label><div class="input-prefix"><span>$</span><input type="text" inputmode="numeric" class="money offer-bonus" value="' + fmtNum(o.bonus) + '"></div></div>' +
       '<div class="field"><label>State</label><select class="offer-state">' + stateOptionsHtml(o.state) + '</select></div>' +
       '<div class="field"><label>City (local tax)</label><select class="offer-city">' + offerCityOptions(o.state, o.city) + '</select></div>' +
       '<div class="field-row">' +
@@ -689,13 +717,14 @@
   /* Event wiring                                                        */
   /* ------------------------------------------------------------------ */
   function wire() {
-    document.querySelectorAll('#sidebar input, #sidebar select').forEach(function (el) {
-      el.addEventListener('input', function () {
-        if (el.id === 'input-state') { buildCityOptions(); }
-        renderActive();
-      });
-      el.addEventListener('change', function () { renderActive(); });
+    // Delegated so inputs rebuilt later (buckets after a scenario load or
+    // cloud pull) keep working without re-binding.
+    const sidebar = $('sidebar');
+    sidebar.addEventListener('input', function (e) {
+      if (e.target.id === 'input-state') { buildCityOptions(); }
+      renderActive();
     });
+    sidebar.addEventListener('change', function () { renderActive(); });
 
     $('ded-standard').addEventListener('click', function () { setDeduction('standard'); });
     $('ded-itemize').addEventListener('click', function () { setDeduction('itemize'); });
@@ -807,8 +836,8 @@
         return '<div class="wiz-bucket-row">' +
           '<label>' + b.label + '</label>' +
           '<div class="wiz-bucket-fields">' +
-          '<div class="input-prefix sm"><span>$</span><input type="number" id="wiz-bk-' + b.key + '-bal" value="' + v.balance + '" min="0" step="1000" aria-label="' + b.label + ' balance"></div>' +
-          '<div class="input-prefix sm"><span>$</span><input type="number" id="wiz-bk-' + b.key + '-con" value="' + v.contrib + '" min="0" step="500" aria-label="' + b.label + ' annual"></div>' +
+          '<div class="input-prefix sm"><span>$</span><input type="text" inputmode="numeric" class="money" id="wiz-bk-' + b.key + '-bal" value="' + fmtNum(v.balance) + '" aria-label="' + b.label + ' balance"></div>' +
+          '<div class="input-prefix sm"><span>$</span><input type="text" inputmode="numeric" class="money" id="wiz-bk-' + b.key + '-con" value="' + fmtNum(v.contrib) + '" aria-label="' + b.label + ' annual"></div>' +
           '</div>' +
           '</div>';
       }).join('');
@@ -821,15 +850,15 @@
   function prefillWizard() {
     $('wiz-age').value = state.age;
     $('wiz-retire').value = state.retirementAge;
-    $('wiz-income').value = state.income;
+    $('wiz-income').value = fmtNum(state.income);
     $('wiz-filing').value = state.filing;
     $('wiz-match-toggle').checked = !!state.match.enabled;
     $('wiz-match-rate').value = state.match.rateCents;
     $('wiz-match-cap').value = state.match.capPct;
     $('wiz-loan-toggle').checked = !!state.loans.enabled;
-    $('wiz-loan-balance').value = state.loans.balance;
+    $('wiz-loan-balance').value = fmtNum(state.loans.balance);
     $('wiz-loan-rate').value = state.loans.rate;
-    $('wiz-loan-payment').value = state.loans.payment;
+    $('wiz-loan-payment').value = fmtNum(state.loans.payment);
     buildWizardOptions();
     buildWizardBuckets();
   }
