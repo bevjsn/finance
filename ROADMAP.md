@@ -108,6 +108,21 @@ From the consulting review, before any new features:
 - **Disclaimer footer** on every page (and in the PDF): educational estimates
   only, not financial/tax/investment/legal advice.
 
+### Phase 6B — Compare Job Offers ✅ (shipped)
+The flagship feature for residents signing their first attending contract:
+- Up to 3 offers side by side, each with salary, signing bonus, state + city,
+  employer match, 457(b) availability, and employer type (501(c)(3)/government
+  vs private).
+- True after-tax comparison using the full tax engine and the user's filing
+  status, deductions, and contribution amounts: federal / FICA / state / local
+  taxes, take-home, match dollars, **real annual value** (take-home + match,
+  winner starred), year-1 value with after-tax bonus.
+- Surfaces what salary comparisons hide: unused 457(b) space (≈ annual tax
+  deferred at the offer's combined marginal rate) and PSLF eligibility flagged
+  against the user's actual loans.
+- Offers live in the plan → persist locally, sync via cloud, and are captured
+  in saved scenarios. 11 engine tests (75 total).
+
 ### Phase 6 — Physician-specific modules
 Student loan strategy (PSLF vs. refinance vs. IDR, forgiveness timeline),
 training-years income modeling, advanced tax-advantaged stacking

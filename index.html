@@ -356,6 +356,7 @@
 
       <nav class="tabbar" id="tabbar">
         <a class="tab" data-route="/" href="#/">Overview</a>
+        <a class="tab" data-route="/offers" href="#/offers">Job Offers</a>
         <a class="tab" data-route="/taxes" href="#/taxes">Taxes</a>
         <a class="tab" data-route="/retirement" href="#/retirement">Retirement</a>
         <a class="tab" data-route="/montecarlo" href="#/montecarlo">Monte Carlo</a>
@@ -508,6 +509,24 @@
             <div class="panel-head"><h3>Student Loan Summary</h3></div>
             <div class="stat-grid" id="loan-summary"></div>
             <p class="page-note">Edit your loan balance, rate, and payment in the sidebar. Deeper strategies (PSLF, refinance vs. IDR) are coming in a later release.</p>
+          </div>
+        </section>
+
+        <!-- ===== Job Offers ===== -->
+        <section class="page" data-page="offers">
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Compare Job Offers</h3>
+              <button class="btn-ghost" id="offer-add">+ Add offer</button>
+            </div>
+            <div class="offers-grid" id="offers-grid"></div>
+            <p class="page-note">Offers are compared using your filing status, deductions, and contribution amounts from the sidebar. <strong>Real annual value</strong> = take-home pay + employer match. 457(b) space and PSLF eligibility are shown separately — over a career they can be worth six figures.</p>
+          </div>
+          <div class="panel" id="offers-results-panel" style="display:none">
+            <div class="panel-head"><h3>Side-by-Side</h3></div>
+            <div class="chart-box" style="height:190px"><canvas id="chart-offers"></canvas></div>
+            <div class="table-wrap"><table class="compare-tbl" id="offers-table"></table></div>
+            <div class="offers-verdict" id="offers-verdict"></div>
           </div>
         </section>
 

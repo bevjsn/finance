@@ -276,6 +276,30 @@
     });
   }
 
+  /* ---- Job offers (stacked comparison bars) ---------------------------- */
+  function offers(canvasId, labels, results) {
+    const data = {
+      labels: labels,
+      datasets: [
+        { label: 'Take-Home', data: results.map(function (r) { return r.takeHome; }), backgroundColor: GREEN },
+        { label: 'Employer Match', data: results.map(function (r) { return r.match; }), backgroundColor: PURPLE },
+        { label: 'Taxes', data: results.map(function (r) { return r.tax.total; }), backgroundColor: RED }
+      ]
+    };
+    render('offers', canvasId, 'bar', data, {
+      indexAxis: 'y',
+      scales: {
+        x: { stacked: true, grid: { color: GRID }, ticks: { color: TICK, callback: function (v) { return fmtAxis(v); } } },
+        y: { stacked: true, grid: { display: false }, ticks: { color: TICK } }
+      },
+      plugins: {
+        legend: { labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true, color: '#94a3b8' }, position: 'bottom' },
+        tooltip: tooltip,
+        retirementLine: { index: -1 }
+      }
+    });
+  }
+
   function render(key, canvasId, type, data, options) {
     const el = document.getElementById(canvasId);
     if (!el) return;
@@ -301,6 +325,7 @@
     taxDonut: taxDonut,
     cashFlow: cashFlow,
     drawdown: drawdown,
+    offers: offers,
     fmtMoney: fmtMoney,
     fmtAxis: fmtAxis,
     destroy: destroy

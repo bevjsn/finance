@@ -499,6 +499,73 @@
     };
   }
 
+  /* ===================================================================== */
+  /* Job-offer comparison (Phase 6B)                                        */
+  /* ===================================================================== */
+
+  /* Numeric marginal state rate at a taxable-income level. */
+  function marginalStateRate(taxable, stateCode, filing) {
+    const d = 1000;
+    return Math.max(0,
+      (Taxes.stateTax(taxable + d, stateCode, filing) - Taxes.stateTax(taxable, stateCode, filing)) / d);
+  }
+
+  /* Analyze one job offer against the user's profile (filing status,
+   * deductions, and contribution amounts come from the main plan; salary,
+   * location, match, 457 availability, and employer type from the offer). */
+  function offerAnalysis(offer, state) {
+    const salary = Math.max(0, offer.salary || 0);
+    const bonus = Math.max(0, offer.bonus || 0);
+    const b = state.buckets;
+
+    // pre-tax deferrals valid at THIS employer: 457 only counts if offered
+    const c457 = offer.has457 ? Math.max(0, b.plan457.contrib || 0) : 0;
+    const hsa = Math.max(0, b.hsa.contrib || 0);
+    const preTax = Math.max(0, b.trad401k.contrib || 0) + c457 + hsa;
+
+    const tax = Taxes.computeTaxes({
+      gross: salary, filing: state.filing, preTax: preTax, hsaPreTax: hsa,
+      state: offer.state, city: offer.city || '', deductions: state.deductions
+    });
+
+    const employee401k = Math.max(0, b.trad401k.contrib || 0) + Math.max(0, b.roth401k.contrib || 0);
+    const matchRate = (offer.matchRateCents || 0) / 100;
+    const matchCap = salary * ((offer.matchCapPct || 0) / 100);
+    const match = Math.min(employee401k, matchCap) * matchRate;
+
+    const stMarg = marginalStateRate(tax.taxable, offer.state, state.filing);
+    let cityRate = 0;
+    if (offer.city) {
+      const list = Taxes.CITY_TAXES[offer.state] || [];
+      const hit = list.find(function (x) { return x.name === offer.city; });
+      cityRate = hit ? hit.rate : 0;
+    }
+    const combinedMarginal = tax.marginalFederal + stMarg + cityRate;
+
+    // unused 457(b) space and the approx. income tax it could defer each year
+    const space457 = offer.has457 ? Math.max(0, LIMITS.k457 - c457) : 0;
+    const space457Savings = space457 * combinedMarginal;
+
+    // signing bonus: ordinary income; approx marginal + Medicare (SS base
+    // typically already exceeded at attending salaries)
+    const bonusAfterTax = bonus * Math.max(0, 1 - (combinedMarginal + 0.0145));
+
+    const pslf = offer.employerType === 'nonprofit' &&
+      !!(state.loans && state.loans.enabled && state.loans.balance > 0);
+
+    const realValue = tax.takeHome + match;
+    return {
+      salary: salary, bonus: bonus, tax: tax, match: match,
+      takeHome: tax.takeHome,
+      realValue: realValue,
+      bonusAfterTax: bonusAfterTax,
+      year1Value: realValue + bonusAfterTax,
+      has457: !!offer.has457, space457: space457, space457Savings: space457Savings,
+      pslf: pslf, employerType: offer.employerType || 'private',
+      combinedMarginal: combinedMarginal
+    };
+  }
+
   /* ---- Contribution limit checks --------------------------------------- */
   function limitWarnings(state) {
     const warnings = {};
@@ -526,6 +593,7 @@
     retirementProjection: project,   // legacy alias — same engine
     simulate: simulate,
     rothPlan: rothPlan,
+    offerAnalysis: offerAnalysis,
     limitWarnings: limitWarnings,
     rmdDivisor: rmdDivisor,
     ssFactor: ssFactor,

@@ -17,14 +17,16 @@
   /* ------------------------------------------------------------------ */
   /* Sidebar construction                                                */
   /* ------------------------------------------------------------------ */
-  function buildStateOptions() {
-    const sel = $('input-state');
-    const codes = Object.keys(Taxes.STATES).sort(function (a, b) {
+  function stateOptionsHtml(selected) {
+    return Object.keys(Taxes.STATES).sort(function (a, b) {
       return Taxes.STATES[a].name.localeCompare(Taxes.STATES[b].name);
-    });
-    sel.innerHTML = codes.map(function (c) {
-      return '<option value="' + c + '">' + Taxes.STATES[c].name + '</option>';
+    }).map(function (c) {
+      return '<option value="' + c + '"' + (c === selected ? ' selected' : '') + '>' + Taxes.STATES[c].name + '</option>';
     }).join('');
+  }
+
+  function buildStateOptions() {
+    $('input-state').innerHTML = stateOptionsHtml(state.state);
   }
 
   function cityOptionsHtml(stateCode, selected) {
@@ -536,13 +538,141 @@
     renderActive();
   }
 
+  /* ---- Job offers (Phase 6B) ------------------------------------------- */
+  function offerDefaults() {
+    return {
+      id: 'of_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6),
+      name: 'Offer ' + String.fromCharCode(65 + (state.offers ? state.offers.length : 0)),
+      salary: state.income,
+      bonus: 0,
+      state: state.state,
+      city: state.city || '',
+      matchRateCents: state.match.enabled ? state.match.rateCents : 0,
+      matchCapPct: state.match.enabled ? state.match.capPct : 0,
+      has457: (state.buckets.plan457.contrib || 0) > 0,
+      employerType: 'private'
+    };
+  }
+
+  function offerCityOptions(stateCode, selected) {
+    const out = cityOptionsHtml(stateCode, selected);
+    return out.anyTaxed ? out.html : '<option value="">No local tax</option>';
+  }
+
+  function offerCardHtml(o) {
+    return '<div class="offer-card" data-id="' + esc(o.id) + '">' +
+      '<div class="offer-card-head">' +
+      '<input type="text" class="offer-name" value="' + esc(o.name) + '" maxlength="40" aria-label="Offer name">' +
+      '<button class="offer-remove" title="Remove offer" aria-label="Remove offer">✕</button>' +
+      '</div>' +
+      '<div class="field"><label>Salary</label><div class="input-prefix"><span>$</span><input type="number" class="offer-salary" value="' + o.salary + '" min="0" step="5000"></div></div>' +
+      '<div class="field"><label>Signing bonus <span class="hint">(year 1)</span></label><div class="input-prefix"><span>$</span><input type="number" class="offer-bonus" value="' + o.bonus + '" min="0" step="1000"></div></div>' +
+      '<div class="field"><label>State</label><select class="offer-state">' + stateOptionsHtml(o.state) + '</select></div>' +
+      '<div class="field"><label>City (local tax)</label><select class="offer-city">' + offerCityOptions(o.state, o.city) + '</select></div>' +
+      '<div class="field-row">' +
+      '<div class="field"><label>Match <span class="hint">(¢/$)</span></label><input type="number" class="offer-match-rate" value="' + o.matchRateCents + '" min="0" step="5"></div>' +
+      '<div class="field"><label>Cap <span class="hint">(% salary)</span></label><input type="number" class="offer-match-cap" value="' + o.matchCapPct + '" min="0" step="0.5"></div>' +
+      '</div>' +
+      '<label class="switch-row"><span>457(b) available</span><input type="checkbox" class="offer-457"' + (o.has457 ? ' checked' : '') + '></label>' +
+      '<div class="field"><label>Employer type</label><select class="offer-type">' +
+      '<option value="private"' + (o.employerType !== 'nonprofit' ? ' selected' : '') + '>Private / for-profit</option>' +
+      '<option value="nonprofit"' + (o.employerType === 'nonprofit' ? ' selected' : '') + '>501(c)(3) / government (PSLF)</option>' +
+      '</select></div>' +
+      '</div>';
+  }
+
+  /* Rebuilds the input cards — call only on structural changes (add/remove/
+   * tab entry), never on keystrokes, so typing keeps focus. */
+  function renderOffersPage() {
+    if (!state.offers) state.offers = [];
+    const grid = $('offers-grid');
+    grid.innerHTML = state.offers.length
+      ? state.offers.map(offerCardHtml).join('')
+      : '<div class="empty-note">Add job offers to see the real after-tax difference between them — salary alone is not the answer.</div>';
+    $('offer-add').style.display = state.offers.length >= 3 ? 'none' : '';
+    renderOfferResults();
+  }
+
+  function readOfferCards() {
+    const list = [];
+    document.querySelectorAll('#offers-grid .offer-card').forEach(function (card) {
+      list.push({
+        id: card.dataset.id,
+        name: card.querySelector('.offer-name').value.trim() || 'Offer',
+        salary: num(card.querySelector('.offer-salary').value),
+        bonus: num(card.querySelector('.offer-bonus').value),
+        state: card.querySelector('.offer-state').value,
+        city: card.querySelector('.offer-city').value,
+        matchRateCents: num(card.querySelector('.offer-match-rate').value),
+        matchCapPct: num(card.querySelector('.offer-match-cap').value),
+        has457: card.querySelector('.offer-457').checked,
+        employerType: card.querySelector('.offer-type').value
+      });
+    });
+    state.offers = list;
+  }
+
+  function renderOfferResults() {
+    const panel = $('offers-results-panel');
+    if (!state.offers || !state.offers.length) { panel.style.display = 'none'; return; }
+    panel.style.display = '';
+
+    const results = state.offers.map(function (o) { return Calc.offerAnalysis(o, state); });
+    const names = state.offers.map(function (o) { return o.name; });
+    Charts.offers('chart-offers', names, results);
+
+    const bestIdx = results.reduce(function (bi, r, i) { return r.realValue > results[bi].realValue ? i : bi; }, 0);
+    function row(label, cells, highlight) {
+      return '<tr>' + '<td>' + label + '</td>' +
+        cells.map(function (c, i) {
+          return '<td' + (highlight && i === bestIdx ? ' class="best"' : '') + '>' + c + '</td>';
+        }).join('') + '</tr>';
+    }
+    const rows = [
+      row('Salary', results.map(function (r) { return fmtMoney(r.salary); })),
+      row('Federal tax', results.map(function (r) { return fmtMoney(r.tax.federal); })),
+      row('FICA', results.map(function (r) { return fmtMoney(r.tax.fica); })),
+      row('State tax', results.map(function (r) { return fmtMoney(r.tax.state); })),
+      row('Local tax', results.map(function (r) { return fmtMoney(r.tax.local); })),
+      row('Take-home', results.map(function (r) { return fmtMoney(r.takeHome); })),
+      row('Employer match', results.map(function (r) { return fmtMoney(r.match); })),
+      row('<strong>Real annual value</strong>', results.map(function (r) { return '<strong>' + fmtMoney(r.realValue) + '</strong>'; }), true),
+      row('Year 1 (incl. bonus)', results.map(function (r) { return fmtMoney(r.year1Value); })),
+      row('457(b) space', results.map(function (r) {
+        return r.has457
+          ? fmtMoney(r.space457) + ' <span class="hint">≈' + fmtMoney(r.space457Savings) + '/yr tax deferred</span>'
+          : '—';
+      })),
+      row('PSLF-qualifying', results.map(function (r) {
+        if (r.employerType !== 'nonprofit') return 'No';
+        return '<span class="pslf-badge">' + (r.pslf ? 'Yes — your loans qualify' : 'Yes') + '</span>';
+      }))
+    ];
+    $('offers-table').innerHTML =
+      '<thead><tr><th></th>' + names.map(function (n, i) {
+        return '<th' + (i === bestIdx && names.length > 1 ? ' class="best"' : '') + '>' +
+          esc(n) + (i === bestIdx && names.length > 1 ? ' ★' : '') + '</th>';
+      }).join('') + '</tr></thead><tbody>' + rows.join('') + '</tbody>';
+
+    $('offers-verdict').textContent = names.length > 1
+      ? '★ ' + names[bestIdx] + ' delivers the most real annual value (take-home + match) at ' + fmtMoney(results[bestIdx].realValue) + '.'
+      : 'Add a second offer to compare.';
+  }
+
+  function onOfferEdit() {
+    readOfferCards();
+    Persist.save(Store.toPlan());
+    renderOfferResults();
+  }
+
   const pages = {
     overview: renderOverview,
     taxes: renderTaxes,
     retirement: renderRetirement,
     montecarlo: renderMonteCarlo,
     loans: renderLoans,
-    scenarios: renderScenariosList
+    scenarios: renderScenariosList,
+    offers: renderOffersPage
   };
 
   /* Read inputs, persist, render sidebar bits + the active page only. */
@@ -598,6 +728,31 @@
     });
     $('compare-a').addEventListener('change', renderCompare);
     $('compare-b').addEventListener('change', renderCompare);
+
+    // job offers: delegated so typing in a card never rebuilds the inputs
+    $('offer-add').addEventListener('click', function () {
+      if (!state.offers) state.offers = [];
+      if (state.offers.length >= 3) return;
+      state.offers.push(offerDefaults());
+      Persist.save(Store.toPlan());
+      renderOffersPage();
+    });
+    $('offers-grid').addEventListener('input', onOfferEdit);
+    $('offers-grid').addEventListener('change', function (e) {
+      if (e.target.classList && e.target.classList.contains('offer-state')) {
+        const card = e.target.closest('.offer-card');
+        card.querySelector('.offer-city').innerHTML = offerCityOptions(e.target.value, '');
+      }
+      onOfferEdit();
+    });
+    $('offers-grid').addEventListener('click', function (e) {
+      const btn = e.target.closest('.offer-remove');
+      if (!btn) return;
+      const id = btn.closest('.offer-card').dataset.id;
+      state.offers = state.offers.filter(function (o) { return o.id !== id; });
+      Persist.save(Store.toPlan());
+      renderOffersPage();
+    });
     $('scenario-list').addEventListener('click', function (e) {
       const load = e.target.closest('.sc-load');
       const del = e.target.closest('.sc-del');
@@ -826,6 +981,7 @@
 
     Router.start({
       '/': 'overview',
+      '/offers': 'offers',
       '/taxes': 'taxes',
       '/retirement': 'retirement',
       '/montecarlo': 'montecarlo',

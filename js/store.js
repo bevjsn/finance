@@ -26,6 +26,7 @@
         cash: { balance: 0, contrib: 6000 }
       },
       loans: { enabled: true, balance: 220000, rate: 6.5, payment: 24000 },
+      offers: [],   // job offers being compared (Job Offers tab)
       // horizon is retirement-driven (retirement.planToAge); no separate years slider
       projection: { returnPct: 7 },
       retirement: { spending: 120000, planToAge: 95, ssAnnual: 40000, ssClaimAge: 67, inflation: 2.5 }

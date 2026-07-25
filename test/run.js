@@ -165,6 +165,27 @@ const migrated = Persist.load();
 ok('legacy onboarding key migrates', migrated && migrated.age === 40 && migrated.onboarded === true);
 
 /* ---------------------------------------------------------------- */
+console.log('job offer analysis');
+const offerState = plan();
+const caOffer = { name: 'CA Academic', salary: 350000, bonus: 0, state: 'CA', city: '', matchRateCents: 100, matchCapPct: 4, has457: false, employerType: 'private' };
+const txOffer = { name: 'TX Nonprofit', salary: 350000, bonus: 20000, state: 'TX', city: '', matchRateCents: 100, matchCapPct: 4, has457: true, employerType: 'nonprofit' };
+const ca = Calc.offerAnalysis(caOffer, offerState);
+const tx = Calc.offerAnalysis(txOffer, offerState);
+ok('TX beats CA take-home at equal salary', tx.takeHome > ca.takeHome);
+ok('TX state tax is zero', tx.tax.state === 0);
+ok('CA state tax positive', ca.tax.state > 0);
+close('match 100¢/$ up to 4% of 350k', ca.match, 14000, 0.01);
+ok('457 space only where offered', ca.space457 === 0 && tx.space457 === Calc.LIMITS.k457);
+ok('457 savings positive when space exists', tx.space457Savings > 0);
+ok('PSLF needs nonprofit AND loans', tx.pslf === true && ca.pslf === false);
+ok('PSLF off when loans disabled', Calc.offerAnalysis(txOffer, plan(function (p) { p.loans.enabled = false; })).pslf === false);
+ok('bonus raises year-1 value only', tx.year1Value > tx.realValue && tx.bonusAfterTax < tx.bonus);
+const nycOffer = { name: 'NYC', salary: 350000, bonus: 0, state: 'NY', city: 'New York City', matchRateCents: 0, matchCapPct: 0, has457: false, employerType: 'private' };
+const nyc = Calc.offerAnalysis(nycOffer, offerState);
+ok('city local tax applied to offer', nyc.tax.local > 10000);
+ok('real value = take-home + match', Math.abs(ca.realValue - (ca.takeHome + ca.match)) < 0.01);
+
+/* ---------------------------------------------------------------- */
 console.log('roth conversion plan');
 const rp = Calc.rothPlan(plan());
 close('fills 22% bracket (103,350 - 25,000)', rp.annualConversion, 78350, 0.01);
