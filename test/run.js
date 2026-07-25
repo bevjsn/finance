@@ -186,6 +186,30 @@ ok('city local tax applied to offer', nyc.tax.local > 10000);
 ok('real value = take-home + match', Math.abs(ca.realValue - (ca.takeHome + ca.match)) < 0.01);
 
 /* ---------------------------------------------------------------- */
+console.log('student loan strategies');
+/* IDR monthly at default profile: AGI 322,200 − 1.5×15,650 = 298,725 → 10%/12 */
+close('IDR monthly payment', Calc.idrMonthlyPayment(plan()), 2489.38, 1);
+const ls = Calc.loanStrategies(plan(function (p) {
+  p.loans.pslfMonths = 36; p.loans.refiRate = 5; p.loans.refiTermYears = 10;
+}));
+ok('four strategies returned', ls.strategies.length === 4);
+const refiS = ls.strategies.find(function (s) { return s.key === 'refi'; });
+close('refi monthly 220k @5%/10yr', refiS.monthly, 2333.46, 1);
+close('refi total paid', refiS.totalPaid, 280015, 200);
+const pslfS = ls.strategies.find(function (s) { return s.key === 'pslf'; });
+ok('PSLF forgives with residency credit', pslfS.forgiven > 50000);
+ok('PSLF forgiveness is tax-free', pslfS.forgivenTax === 0);
+ok('PSLF wins with 36 months banked', ls.strategies[ls.bestIdx].key === 'pslf');
+ok('PSLF net cost = payments only', Math.abs(pslfS.netCost - pslfS.totalPaid) < 0.01);
+const idrS = ls.strategies.find(function (s) { return s.key === 'idr'; });
+ok('IDR taxed only if forgiven', idrS.forgiven === 0 ? idrS.forgivenTax === 0 : idrS.forgivenTax > 0);
+ok('null when loans disabled', Calc.loanStrategies(plan(function (p) { p.loans.enabled = false; })) === null);
+ok('null when balance zero', Calc.loanStrategies(plan(function (p) { p.loans.balance = 0; })) === null);
+const tinyPay = Calc.loanStrategies(plan(function (p) { p.loans.payment = 10000; }));
+const curS = tinyPay.strategies.find(function (s) { return s.key === 'current'; });
+ok('underwater current payment flagged', curS.done === false);
+
+/* ---------------------------------------------------------------- */
 console.log('roth conversion plan');
 const rp = Calc.rothPlan(plan());
 close('fills 22% bracket (103,350 - 25,000)', rp.annualConversion, 78350, 0.01);

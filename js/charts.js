@@ -300,6 +300,29 @@
     });
   }
 
+  /* ---- Loan strategy net-cost bars ------------------------------------- */
+  function loanStrategies(canvasId, strategies) {
+    const data = {
+      labels: strategies.map(function (s) { return s.shortLabel; }),
+      datasets: [
+        { label: 'Paid out of pocket', data: strategies.map(function (s) { return s.totalPaid; }), backgroundColor: INDIGO },
+        { label: 'Tax on forgiveness', data: strategies.map(function (s) { return s.forgivenTax; }), backgroundColor: RED }
+      ]
+    };
+    render('loanStrategies', canvasId, 'bar', data, {
+      indexAxis: 'y',
+      scales: {
+        x: { stacked: true, grid: { color: GRID }, ticks: { color: TICK, callback: function (v) { return fmtAxis(v); } } },
+        y: { stacked: true, grid: { display: false }, ticks: { color: TICK } }
+      },
+      plugins: {
+        legend: { labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true, color: '#94a3b8' }, position: 'bottom' },
+        tooltip: tooltip,
+        retirementLine: { index: -1 }
+      }
+    });
+  }
+
   function render(key, canvasId, type, data, options) {
     const el = document.getElementById(canvasId);
     if (!el) return;
@@ -326,6 +349,7 @@
     cashFlow: cashFlow,
     drawdown: drawdown,
     offers: offers,
+    loanStrategies: loanStrategies,
     fmtMoney: fmtMoney,
     fmtAxis: fmtAxis,
     destroy: destroy

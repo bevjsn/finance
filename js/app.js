@@ -409,6 +409,7 @@
     const wrap = $('loan-summary');
     if (!state.loans.enabled || state.loans.balance <= 0) {
       wrap.innerHTML = '<div class="empty-note">No student loans on file — you\'re debt-free here 🎉</div>';
+      renderLoanStrategies();   // hides the strategy panel
       return;
     }
     const s = loanSummary();
@@ -424,6 +425,70 @@
       { label: 'Total paid', val: fmtMoney(s.totalPaid) }
     ];
     wrap.innerHTML = statCards(stats);
+    renderLoanStrategies();
+  }
+
+  /* ---- Loan strategy comparison (Phase 6C) ------------------------------ */
+  function setIfIdle(id, v) {
+    const el = $(id);
+    if (el && document.activeElement !== el) el.value = v;
+  }
+
+  function fmtYears(months) {
+    const yrs = months / 12;
+    return (yrs % 1 === 0 ? yrs : yrs.toFixed(1)) + ' yrs · age ' + Math.round(state.age + yrs);
+  }
+
+  function renderLoanStrategies() {
+    const panel = $('loan-strategy-panel');
+    const res = Calc.loanStrategies(state);
+    if (!res) { panel.style.display = 'none'; return; }
+    panel.style.display = '';
+
+    setIfIdle('loan-pslf-months', state.loans.pslfMonths || 0);
+    setIfIdle('loan-refi-rate', state.loans.refiRate != null ? state.loans.refiRate : 5);
+    setIfIdle('loan-refi-term', String(state.loans.refiTermYears || 10));
+
+    const s = res.strategies;
+    const bestIdx = res.bestIdx;
+    Charts.loanStrategies('chart-loanstrat', s);
+
+    function row(label, cells, highlight) {
+      return '<tr><td>' + label + '</td>' + cells.map(function (c, i) {
+        return '<td' + (highlight && i === bestIdx ? ' class="best"' : '') + '>' + c + '</td>';
+      }).join('') + '</tr>';
+    }
+    $('loan-strat-table').innerHTML =
+      '<thead><tr><th></th>' + s.map(function (x, i) {
+        return '<th' + (i === bestIdx ? ' class="best"' : '') + '>' + x.label + (i === bestIdx ? ' ★' : '') + '</th>';
+      }).join('') + '</tr></thead><tbody>' +
+      row('Monthly payment', s.map(function (x) { return fmtMoney(x.monthly); })) +
+      row('Time to done', s.map(function (x) { return x.done ? fmtYears(x.months) : '<span class="bad">Never</span>'; })) +
+      row('Total paid', s.map(function (x) { return fmtMoney(x.totalPaid); })) +
+      row('Forgiven', s.map(function (x) { return x.forgiven > 0 ? '<span class="good-text">' + fmtMoney(x.forgiven) + '</span>' : '—'; })) +
+      row('Tax on forgiveness', s.map(function (x) { return x.forgivenTax > 0 ? fmtMoney(x.forgivenTax) : '—'; })) +
+      row('<strong>Net cost</strong>', s.map(function (x) { return '<strong>' + fmtMoney(x.netCost) + '</strong>'; }), true) +
+      row('Notes', s.map(function (x) { return x.note ? '<span class="hint">' + x.note + '</span>' : '—'; })) +
+      '</tbody>';
+
+    const best = s[bestIdx];
+    let verdict = '★ ' + best.label + ' has the lowest net cost at ' + fmtMoney(best.netCost) + '.';
+    if (best.key === 'pslf') {
+      const np = (state.offers || []).filter(function (o) { return o.employerType === 'nonprofit'; });
+      verdict += np.length
+        ? ' Your offer “' + np[0].name + '” is a PSLF-qualifying employer.'
+        : ' Requires a 501(c)(3)/government employer — check the Job Offers tab.';
+      if (best.paysOffFirst) verdict = '★ Your income-driven payment retires the loan before 120 payments — PSLF forgives nothing extra.';
+    }
+    $('loan-verdict').textContent = verdict;
+  }
+
+  function onLoanStratEdit() {
+    state.loans.pslfMonths = num($('loan-pslf-months').value);
+    state.loans.refiRate = num($('loan-refi-rate').value);
+    state.loans.refiTermYears = num($('loan-refi-term').value) || 10;
+    Persist.save(Store.toPlan());
+    renderLoanStrategies();
   }
 
   function statCards(stats) {
@@ -782,6 +847,11 @@
       Persist.save(Store.toPlan());
       renderOffersPage();
     });
+
+    // loan strategy controls (on the Student Loans page)
+    $('loan-pslf-months').addEventListener('input', onLoanStratEdit);
+    $('loan-refi-rate').addEventListener('input', onLoanStratEdit);
+    $('loan-refi-term').addEventListener('change', onLoanStratEdit);
     $('scenario-list').addEventListener('click', function (e) {
       const load = e.target.closest('.sc-load');
       const del = e.target.closest('.sc-del');

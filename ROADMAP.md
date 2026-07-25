@@ -123,6 +123,20 @@ The flagship feature for residents signing their first attending contract:
 - Offers live in the plan → persist locally, sync via cloud, and are captured
   in saved scenarios. 11 engine tests (75 total).
 
+### Phase 6C — Student loan strategy ✅ (shipped)
+The Student Loans tab now compares the four realistic paths for a physician's
+federal loans, with a net-cost chart, side-by-side table, and verdict:
+- **Keep current payment** (baseline; flags payments that never retire the loan)
+- **Refinance** (rate + 5/7/10/15-yr term controls; closed-form amortization)
+- **PSLF** — income-driven payment (10% of discretionary income at current
+  income) until 120 total qualifying payments; residency months already made
+  are credited via a control, remainder forgiven tax-free; detects when the
+  payment retires the loan before forgiveness matters
+- **IDR to 20-yr forgiveness** — negative amortization supported; forgiven
+  balance taxed at the combined marginal rate
+Verdict ties into the Job Offers tab (names a PSLF-qualifying offer if one is
+saved). 13 engine tests (87 total). Simplifications documented on-page.
+
 ### Phase 6 — Physician-specific modules
 Student loan strategy (PSLF vs. refinance vs. IDR, forgiveness timeline),
 training-years income modeling, advanced tax-advantaged stacking

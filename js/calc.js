@@ -566,6 +566,104 @@
     };
   }
 
+  /* ===================================================================== */
+  /* Student loan strategies (Phase 6C)                                     */
+  /* ===================================================================== */
+
+  /* 2025 federal poverty guidelines (48 states), by household size implied
+   * from filing status — simplified for planning. */
+  const POVERTY_LINE = { single: 15650, married: 21150, mfs: 15650, hoh: 21150, qss: 21150 };
+
+  /* Income-driven monthly payment: 10% of discretionary income
+   * (AGI − 150% × poverty guideline), at CURRENT income. */
+  function idrMonthlyPayment(state) {
+    const agi = taxSummary(state).agi;
+    const pov = POVERTY_LINE[state.filing] || POVERTY_LINE.single;
+    return Math.max(0, 0.10 * (agi - 1.5 * pov) / 12);
+  }
+
+  /* Month-by-month amortization; negative amortization allowed (balance can
+   * grow when the payment doesn't cover interest — relevant for IDR/PSLF). */
+  function amortize(balance, annualRatePct, monthlyPmt, maxMonths) {
+    let bal = Math.max(0, balance), paid = 0, interest = 0, m = 0;
+    const mr = (annualRatePct || 0) / 100 / 12;
+    const cap = Math.min(maxMonths, 1200);   // 100-year guard
+    while (bal > 0.005 && m < cap) {
+      const i = bal * mr;
+      const pay = Math.min(monthlyPmt, bal + i);
+      if (pay <= 0) break;
+      bal = bal + i - pay;
+      paid += pay; interest += i; m++;
+    }
+    return { months: m, totalPaid: paid, totalInterest: interest, endBalance: bal };
+  }
+
+  /* Compare the four realistic paths for a physician's federal loans.
+   * Returns null when there are no loans to plan around. */
+  function loanStrategies(state) {
+    const loans = state.loans || {};
+    if (!loans.enabled || (loans.balance || 0) <= 0) return null;
+    const bal = loans.balance;
+    const ts = taxSummary(state);
+    const marginal = ts.marginalFederal + marginalStateRate(ts.taxable, state.state, state.filing);
+    const idrPmt = idrMonthlyPayment(state);
+    const out = [];
+
+    // 1. Keep the current payment on the current rate
+    const curPmtMo = Math.max(0, loans.payment || 0) / 12;
+    const cur = amortize(bal, loans.rate, curPmtMo, 1200);
+    const curDone = cur.endBalance <= 0.01;
+    out.push({
+      key: 'current', shortLabel: 'Current', label: 'Keep current payment',
+      monthly: curPmtMo, months: cur.months, totalPaid: cur.totalPaid,
+      forgiven: 0, forgivenTax: 0, netCost: cur.totalPaid, done: curDone,
+      note: curDone ? null : 'Payment never retires the loan'
+    });
+
+    // 2. Refinance to a private loan (closed-form amortization)
+    const refiRatePct = loans.refiRate != null ? loans.refiRate : 5;
+    const termYears = loans.refiTermYears || 10;
+    const rr = refiRatePct / 100 / 12;
+    const n = termYears * 12;
+    const refiPmt = rr > 0 ? bal * rr / (1 - Math.pow(1 + rr, -n)) : bal / n;
+    out.push({
+      key: 'refi', shortLabel: 'Refinance', label: 'Refinance ' + refiRatePct + '% · ' + termYears + ' yr',
+      monthly: refiPmt, months: n, totalPaid: refiPmt * n,
+      forgiven: 0, forgivenTax: 0, netCost: refiPmt * n, done: true,
+      note: 'Gives up federal protections & forgiveness'
+    });
+
+    // 3. PSLF: IDR payments until 120 total qualifying payments, rest forgiven tax-free
+    const made = Math.max(0, Math.min(119, Math.round(loans.pslfMonths || 0)));
+    const left = 120 - made;
+    const pslf = amortize(bal, loans.rate, idrPmt, left);
+    const paysOffFirst = pslf.endBalance <= 0.01;
+    out.push({
+      key: 'pslf', shortLabel: 'PSLF', label: 'PSLF (' + left + ' qualifying payments left)',
+      monthly: idrPmt, months: paysOffFirst ? pslf.months : left,
+      totalPaid: pslf.totalPaid, forgiven: paysOffFirst ? 0 : pslf.endBalance,
+      forgivenTax: 0, netCost: pslf.totalPaid, done: true,
+      paysOffFirst: paysOffFirst,
+      note: '501(c)(3)/government employer required; forgiveness is tax-free'
+    });
+
+    // 4. IDR to 20-year forgiveness (forgiven amount taxed as ordinary income)
+    const idr = amortize(bal, loans.rate, idrPmt, 240);
+    const idrPaysOff = idr.endBalance <= 0.01;
+    const idrForgiven = idrPaysOff ? 0 : idr.endBalance;
+    const idrTax = idrForgiven * marginal;
+    out.push({
+      key: 'idr', shortLabel: 'IDR 20yr', label: 'IDR to 20-yr forgiveness',
+      monthly: idrPmt, months: idrPaysOff ? idr.months : 240,
+      totalPaid: idr.totalPaid, forgiven: idrForgiven, forgivenTax: idrTax,
+      netCost: idr.totalPaid + idrTax, done: true,
+      note: idrForgiven > 0 ? 'Forgiven balance taxed as income' : 'Pays off before forgiveness'
+    });
+
+    const bestIdx = out.reduce(function (bi, s, i) { return s.netCost < out[bi].netCost ? i : bi; }, 0);
+    return { strategies: out, bestIdx: bestIdx, idrMonthly: idrPmt, marginal: marginal };
+  }
+
   /* ---- Contribution limit checks --------------------------------------- */
   function limitWarnings(state) {
     const warnings = {};
@@ -594,6 +692,8 @@
     simulate: simulate,
     rothPlan: rothPlan,
     offerAnalysis: offerAnalysis,
+    loanStrategies: loanStrategies,
+    idrMonthlyPayment: idrMonthlyPayment,
     limitWarnings: limitWarnings,
     rmdDivisor: rmdDivisor,
     ssFactor: ssFactor,

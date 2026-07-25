@@ -25,7 +25,12 @@
         taxable: { balance: 0, contrib: 12000 },
         cash: { balance: 0, contrib: 6000 }
       },
-      loans: { enabled: true, balance: 220000, rate: 6.5, payment: 24000 },
+      loans: {
+        enabled: true, balance: 220000, rate: 6.5, payment: 24000,
+        pslfMonths: 0,        // qualifying PSLF payments already made (incl. residency)
+        refiRate: 5.0,        // hypothetical refinance rate (%)
+        refiTermYears: 10     // hypothetical refinance term
+      },
       offers: [],   // job offers being compared (Job Offers tab)
       // horizon is retirement-driven (retirement.planToAge); no separate years slider
       projection: { returnPct: 7 },

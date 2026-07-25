@@ -508,7 +508,39 @@
           <div class="panel">
             <div class="panel-head"><h3>Student Loan Summary</h3></div>
             <div class="stat-grid" id="loan-summary"></div>
-            <p class="page-note">Edit your loan balance, rate, and payment in the sidebar. Deeper strategies (PSLF, refinance vs. IDR) are coming in a later release.</p>
+            <p class="page-note">Edit your loan balance, rate, and payment in the sidebar.</p>
+          </div>
+
+          <div class="panel" id="loan-strategy-panel" style="display:none">
+            <div class="panel-head"><h3>Payoff Strategy Comparison</h3></div>
+            <div class="loan-controls">
+              <div class="field">
+                <label>PSLF payments already made <span class="hint">(months, incl. residency)</span></label>
+                <input type="number" id="loan-pslf-months" value="0" min="0" max="119" step="1">
+              </div>
+              <div class="field">
+                <label>Refinance rate <span class="hint">(%)</span></label>
+                <input type="number" id="loan-refi-rate" value="5.0" min="1" max="12" step="0.1">
+              </div>
+              <div class="field">
+                <label>Refinance term</label>
+                <select id="loan-refi-term">
+                  <option value="5">5 years</option>
+                  <option value="7">7 years</option>
+                  <option value="10" selected>10 years</option>
+                  <option value="15">15 years</option>
+                </select>
+              </div>
+            </div>
+            <div class="chart-box" style="height:190px"><canvas id="chart-loanstrat"></canvas></div>
+            <div class="table-wrap"><table class="compare-tbl" id="loan-strat-table"></table></div>
+            <div class="offers-verdict" id="loan-verdict"></div>
+            <div class="info-box">
+              <h4>How to read this</h4>
+              <p><strong>PSLF</strong>: after <strong>120 qualifying monthly payments</strong> while employed by a 501(c)(3) or government employer, the remaining balance is forgiven <strong>tax-free</strong>. Residency payments count — every low-income month you've already logged shrinks what you'll pay at attending income.</p>
+              <p><strong>Refinance</strong> trades federal protections and forgiveness for a lower rate — usually strongest at a private employer with aggressive payoff. <strong>IDR to 20-year forgiveness</strong> rarely wins at attending income, and any forgiven balance is taxed as ordinary income.</p>
+              <p class="info-box-note">Income-driven payment estimated as 10% of discretionary income (AGI − 150% of the 2025 poverty guideline) at your <em>current</em> income. Simplified for planning — certify actual PSLF employment at StudentAid.gov.</p>
+            </div>
           </div>
         </section>
 
