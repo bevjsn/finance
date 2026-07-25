@@ -91,6 +91,23 @@ store (`js/cloud.js`):
 - One-time setup (free Supabase project + one SQL snippet) documented in
   `CLOUD_SETUP.md`.
 
+### Phase 6A — Correctness foundation ✅ (shipped)
+From the consulting review, before any new features:
+- **One engine everywhere.** `project()` is now a full-lifecycle projection
+  (contributions and employer match stop at retirement; drawdown, RMDs, and
+  Social Security follow), and the Monte Carlo runs the *same* yearly logic
+  with random returns — so the success %, the bands, and the deterministic
+  charts can no longer contradict each other. The steady-return case is drawn
+  as a dashed line inside the probability band.
+- **Single horizon.** The "years to project" slider is gone; every view runs
+  from current age to the plan-to age.
+- **Test suite** (`test/run.js`, `node test/run.js`): 64 golden-number
+  regression tests for federal/FICA/state/local taxes, deductions, match,
+  limits, SSA factors, RMDs, the lifecycle projection, the stochastic engine,
+  and persistence. It already caught a scenario-ID collision bug.
+- **Disclaimer footer** on every page (and in the PDF): educational estimates
+  only, not financial/tax/investment/legal advice.
+
 ### Phase 6 — Physician-specific modules
 Student loan strategy (PSLF vs. refinance vs. IDR, forgiveness timeline),
 training-years income modeling, advanced tax-advantaged stacking

@@ -141,7 +141,9 @@
   }
 
   /* ---- Monte Carlo ----------------------------------------------------- */
-  function monteCarlo(canvasId, mc, ages, retirementIndex) {
+  /* det (optional): deterministic net-worth path overlaid as a dashed line
+   * so the steady-return case is visible INSIDE the probability band. */
+  function monteCarlo(canvasId, mc, ages, retirementIndex, det, detLabel) {
     const labels = ages.map(function (a) { return 'Age ' + a; });
     // Datasets ordered high -> low so fill:'+1' shades the band down to the
     // next (lower) percentile line.
@@ -155,6 +157,13 @@
         { label: 'P10', data: mc.bands.p10, borderColor: '#60a5fa', backgroundColor: 'transparent', fill: false, tension: 0.25, pointRadius: 0, borderWidth: 1 }
       ]
     };
+    if (det) {
+      data.datasets.push({
+        label: detLabel || 'Steady return', data: det,
+        borderColor: '#cbd5e1', backgroundColor: 'transparent', fill: false,
+        borderDash: [4, 4], tension: 0.25, pointRadius: 0, borderWidth: 1.5
+      });
+    }
     render('monteCarlo', canvasId, 'line', data, {
       scales: baseScales(),
       plugins: {

@@ -90,7 +90,8 @@
       if (!this.available) return null;
       const list = this.listScenarios();
       const entry = {
-        id: 'sc_' + Date.now().toString(36),
+        // random suffix: Date.now() alone collides when saves land in the same ms
+        id: 'sc_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8),
         name: name || 'Untitled',
         savedAt: Date.now(),
         plan: plan

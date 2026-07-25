@@ -398,7 +398,7 @@
     const cityName = opts.city || '';
     const deductions = opts.deductions || { mode: 'standard' };
 
-    const wages = Math.max(0, gross - preTax);   // FICA does not apply to 401k but DOES apply normally; SS/Medicare apply to gross-401k? 401k is FICA-taxable. We treat HSA via cafeteria as FICA-exempt; keep simple: FICA on gross minus HSA only.
+    // FICA: 401k/457 deferrals are FICA-taxable; payroll HSA contributions are exempt.
     const ficaWages = Math.max(0, gross - (opts.hsaPreTax || 0));
     const agi = Math.max(0, gross - preTax);
 

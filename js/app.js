@@ -121,9 +121,7 @@
     $('loan-payment').value = state.loans.payment;
 
     $('input-return').value = state.projection.returnPct;
-    $('input-years').value = state.projection.years;
     $('return-val').textContent = state.projection.returnPct + '%';
-    $('years-val').textContent = state.projection.years + ' yrs';
 
     $('input-ret-spending').value = state.retirement.spending;
     $('input-ret-ss').value = state.retirement.ssAnnual;
@@ -168,7 +166,6 @@
     state.loans.payment = num($('loan-payment').value);
 
     state.projection.returnPct = num($('input-return').value);
-    state.projection.years = num($('input-years').value);
 
     state.retirement.spending = num($('input-ret-spending').value);
     state.retirement.ssAnnual = num($('input-ret-ss').value);
@@ -192,8 +189,25 @@
       loan: state.loans.enabled ? state.loans.payment : 0,
       spending: proj.annualSpending
     };
-    const retIndex = Math.max(-1, Math.min(state.projection.years, state.retirementAge - state.age));
+    const retIndex = Math.max(0, Math.min(proj.rows.length - 1, state.retirementAge - state.age));
     return { proj: proj, tax: tax, match: match, savingsRate: savingsRate, flow: flow, retIndex: retIndex };
+  }
+
+  /* ---- Shared Monte Carlo cache ---------------------------------------- */
+  /* ONE stochastic engine feeds the success gauge, the Retirement readiness
+   * card, and the Monte Carlo chart — they can never disagree. Debounced and
+   * cached against the current plan so tab switches are instant. */
+  let simTimer = null;
+  let simCache = { key: null, result: null };
+  function requestSim(cb) {
+    const key = JSON.stringify(Store.toPlan());
+    if (simCache.key === key && simCache.result) { cb(simCache.result); return; }
+    if (simTimer) clearTimeout(simTimer);
+    simTimer = setTimeout(function () {
+      const res = Calc.simulate(state, 500);
+      simCache = { key: JSON.stringify(Store.toPlan()), result: res };
+      cb(res);
+    }, 350);
   }
 
   /* ------------------------------------------------------------------ */
@@ -223,22 +237,19 @@
     $('kpi-taxrate-sub').textContent = 'Marginal ' + fmtPct(d.tax.marginalFederal) + ' fed';
     $('kpi-savings').textContent = fmtPct(d.savingsRate);
     $('kpi-savings-sub').textContent = fmtMoney(d.proj.totalContrib + d.match) + ' / yr';
-    $('kpi-networth').textContent = fmtMoney(d.proj.finalNetWorth);
-    $('kpi-networth-sub').textContent = 'at age ' + (state.age + state.projection.years);
+    $('kpi-networth').textContent = fmtMoney(d.proj.retirementNetWorth);
+    $('kpi-networth-sub').textContent = 'age ' + d.proj.retAge + ' · ' + Charts.fmtAxis(d.proj.finalNetWorth) + ' at ' + d.proj.endAge;
 
     Charts.netWorth('chart-networth', d.proj, d.retIndex);
     Charts.cashFlow('chart-cashflow', d.flow);
-    renderSuccess();
+    renderSuccess(d);
   }
 
-  let successTimer = null;
-  function renderSuccess() {
-    const endAge = Math.max(state.retirementAge + 1, Math.min(100, Math.round(state.retirement.planToAge)));
+  function renderSuccess(d) {
+    const endAge = d.proj.endAge;
     $('success-age').textContent = endAge;
-    $('success-note').textContent = 'Running 400 market simulations…';
-    if (successTimer) clearTimeout(successTimer);
-    successTimer = setTimeout(function () {
-      const sc = Calc.successScore(state, 400);
+    $('success-note').textContent = 'Running 500 market simulations…';
+    requestSim(function (sc) {
       const pct = Math.round(sc.successRate * 100);
       const tier = pct >= 80 ? 'good' : (pct >= 50 ? 'mid' : 'bad');
       $('success-pct').textContent = pct + '%';
@@ -246,10 +257,11 @@
       const bar = $('success-bar');
       bar.style.width = pct + '%';
       bar.className = 'success-bar-fill ' + tier;
-      $('success-note').textContent = 'Across ' + sc.runs + ' simulated market histories your money survives in ' +
-        pct + '% of them (median ending balance ' + fmtMoney(sc.medianEnding) +
-        '). This accounts for market ups and downs — the Retirement tab’s drawdown assumes a steady return, so it looks rosier.';
-    }, 400);
+      $('success-note').textContent = 'In ' + pct + '% of ' + sc.runs +
+        ' simulated market histories your plan funds every year of spending through age ' + endAge +
+        ' (median ending balance ' + fmtMoney(sc.medianEnding) +
+        '). Same engine as the Monte Carlo tab and the Retirement readiness card.';
+    });
   }
 
   function renderTaxes(d) {
@@ -282,19 +294,27 @@
   }
 
   function renderRetirement(d) {
-    // --- Phase 3: full lifecycle readiness, drawdown, Social Security ---
-    const rp = Calc.retirementProjection(state);
-    const lastsVal = rp.lastsToPlan
-      ? 'Lasts to ' + rp.endAge + '+'
+    // Readiness: chance of success (stochastic) leads; the steady-return case
+    // is shown alongside it, clearly labeled — one engine, no contradictions.
+    const rp = d.proj;
+    const steadyVal = rp.lastsToPlan
+      ? 'Lasts to ' + rp.endAge
       : 'Depletes at ' + rp.depleteAge;
     $('ret-readiness').innerHTML = statCards([
-      { label: 'Money', val: lastsVal, cls: rp.lastsToPlan ? 'good' : 'bad' },
+      { label: 'Chance of success', val: '<span id="ret-success-val">…</span>' },
+      { label: 'Steady-return case', val: steadyVal, cls: rp.lastsToPlan ? 'good' : 'bad' },
       { label: 'Assets at retirement (age ' + rp.retAge + ')', val: fmtMoney(rp.retirementAssets) },
       { label: 'Est. balance at age ' + rp.endAge, val: fmtMoney(rp.endingAssets) },
       { label: 'First-year spending need', val: fmtMoney(rp.firstYearSpending) },
-      { label: 'Social Security / yr', val: fmtMoney(rp.ssAnnualAtClaim) },
       { label: 'Lifetime taxes in retirement', val: fmtMoney(rp.lifetimeTax) }
     ]);
+    requestSim(function (sc) {
+      const el = $('ret-success-val');
+      if (!el) return;
+      const pct = Math.round(sc.successRate * 100);
+      el.textContent = pct + '%';
+      el.className = pct >= 80 ? 'good' : (pct >= 50 ? 'mid' : 'bad');
+    });
     Charts.drawdown('chart-drawdown', rp);
 
     const ss = Calc.socialSecurity(state);
@@ -342,19 +362,17 @@
     }).join('');
   }
 
-  let mcTimer = null;
   function renderMonteCarlo(d) {
     const meanEl = $('mc-mean');
     if (meanEl) meanEl.textContent = state.projection.returnPct + '%';
-    if (mcTimer) clearTimeout(mcTimer);
-    mcTimer = setTimeout(function () {
-      const mc = Calc.monteCarlo(state, 500);
-      const ages = d.proj.rows.map(function (r) { return r.age; });
-      Charts.monteCarlo('chart-montecarlo', mc, ages, d.retIndex);
+    const ages = d.proj.rows.map(function (r) { return r.age; });
+    const det = d.proj.rows.map(function (r) { return r.netWorth; });
+    requestSim(function (mc) {
+      Charts.monteCarlo('chart-montecarlo', mc, ages, d.retIndex, det, 'Steady ' + state.projection.returnPct + '%');
       $('mc-p10').textContent = fmtMoney(mc.finalP10);
       $('mc-p50').textContent = fmtMoney(mc.finalP50);
       $('mc-p90').textContent = fmtMoney(mc.finalP90);
-    }, 300);
+    });
   }
 
   function renderLoans(d) {
@@ -433,16 +451,16 @@
 
   function planMetrics(plan, withSuccess) {
     const full = fillDefaults(plan);
-    const proj = Calc.project(full);
-    const rp = Calc.retirementProjection(full);
+    const proj = Calc.project(full);   // one engine for every metric
     const m = {
-      networth: proj.finalNetWorth,
+      networth: proj.retirementNetWorth,
+      ending: proj.finalNetWorth,
       effRate: proj.tax.effectiveRate,
       takeHome: proj.tax.takeHome,
-      lasts: rp.lastsToPlan, depleteAge: rp.depleteAge, endAge: rp.endAge,
-      retAssets: rp.retirementAssets, lifetimeTax: rp.lifetimeTax
+      lasts: proj.lastsToPlan, depleteAge: proj.depleteAge, endAge: proj.endAge,
+      retAssets: proj.retirementAssets, lifetimeTax: proj.lifetimeTax
     };
-    if (withSuccess) m.success = Calc.successScore(full, 250).successRate;
+    if (withSuccess) m.success = Calc.simulate(full, 250).successRate;
     return m;
   }
 
@@ -468,7 +486,7 @@
         const lasts = m.lasts ? ('lasts to ' + m.endAge) : ('depletes at ' + m.depleteAge);
         return '<div class="scenario-item">' +
           '<div class="scenario-meta"><div class="scenario-name">' + esc(s.name) + '</div>' +
-          '<div class="scenario-stats">Net worth ' + fmtMoney(m.networth) + ' · ' + lasts + ' · ' + fmtPct(m.effRate) + ' eff. tax</div></div>' +
+          '<div class="scenario-stats">NW at retirement ' + fmtMoney(m.networth) + ' · ' + lasts + ' · ' + fmtPct(m.effRate) + ' eff. tax</div></div>' +
           '<div class="scenario-actions">' +
           '<button class="btn-ghost sc-load" data-id="' + s.id + '">Load</button>' +
           '<button class="btn-ghost sc-del" data-id="' + s.id + '">Delete</button>' +
@@ -495,7 +513,8 @@
       const A = planMetrics(aPlan, true), B = planMetrics(bPlan, true);
       const nameA = $('compare-a').selectedOptions[0].text, nameB = $('compare-b').selectedOptions[0].text;
       const rows = [
-        ['Projected net worth', fmtMoney(A.networth), fmtMoney(B.networth)],
+        ['Net worth at retirement', fmtMoney(A.networth), fmtMoney(B.networth)],
+        ['Ending net worth (plan-to age)', fmtMoney(A.ending), fmtMoney(B.ending)],
         ['Chance of success', fmtPct(A.success), fmtPct(B.success)],
         ['Money', A.lasts ? ('lasts to ' + A.endAge) : ('depletes ' + A.depleteAge), B.lasts ? ('lasts to ' + B.endAge) : ('depletes ' + B.depleteAge)],
         ['Assets at retirement', fmtMoney(A.retAssets), fmtMoney(B.retAssets)],
@@ -556,7 +575,6 @@
     });
 
     $('input-return').addEventListener('input', function () { $('return-val').textContent = this.value + '%'; });
-    $('input-years').addEventListener('input', function () { $('years-val').textContent = this.value + ' yrs'; });
     $('input-ret-planage').addEventListener('input', function () { $('ret-planage-val').textContent = this.value; });
     $('input-ret-inflation').addEventListener('input', function () { $('ret-inflation-val').textContent = this.value + '%'; });
 

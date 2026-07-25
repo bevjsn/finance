@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Attending Launch — financial planning for early-career physicians: taxes in all 50 states, retirement projections, Monte Carlo simulation, and student loan planning. Educational estimates, not financial advice.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>">
   <title>Attending Launch — Physician Financial Planning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -316,10 +318,7 @@
           <label>Expected annual return <span class="slider-val" id="return-val">7%</span></label>
           <input type="range" id="input-return" min="1" max="15" step="0.5" value="7">
         </div>
-        <div class="field">
-          <label>Years to project <span class="slider-val" id="years-val">30 yrs</span></label>
-          <input type="range" id="input-years" min="5" max="40" step="1" value="30">
-        </div>
+        <p class="field-hint">Projections run from your current age to your plan-to age (set under Retirement Plan below).</p>
       </div>
 
       <div class="card">
@@ -376,7 +375,7 @@
             <div class="success-body">
               <div class="success-title">Chance your money lasts to age <span id="success-age">95</span></div>
               <div class="success-bar"><div class="success-bar-fill" id="success-bar"></div></div>
-              <div class="success-note" id="success-note">Running 400 market simulations…</div>
+              <div class="success-note" id="success-note">Running 500 market simulations…</div>
             </div>
           </div>
 
@@ -397,7 +396,7 @@
               <div class="kpi-sub" id="kpi-savings-sub">—</div>
             </div>
             <div class="kpi-card">
-              <div class="kpi-label">Projected Net Worth</div>
+              <div class="kpi-label">Net Worth at Retirement</div>
               <div class="kpi-value" id="kpi-networth">$0</div>
               <div class="kpi-sub" id="kpi-networth-sub">—</div>
             </div>
@@ -473,7 +472,7 @@
                 <thead>
                   <tr>
                     <th>Year / Age</th><th>Net Worth</th><th>Total Assets</th><th>Loan Balance</th>
-                    <th>Employer Match</th><th>Total Saved</th><th>Est. Spending</th>
+                    <th>Employer Match</th><th>Saved / Yr</th><th>Est. Spending</th>
                   </tr>
                 </thead>
                 <tbody id="table-body"></tbody>
@@ -496,9 +495,9 @@
             <div class="chart-box" style="height:300px"><canvas id="chart-montecarlo"></canvas></div>
             <div class="info-box">
               <h4>What am I looking at?</h4>
-              <p>Markets don't return the same amount every year. This runs <strong>500 simulated futures</strong> for your portfolio, each year drawing a random return from a bell curve centered on your expected return (currently <strong id="mc-mean">7%</strong>) with <strong>±14% volatility</strong> — so some years boom, some crash.</p>
-              <p>Each line is a <strong>percentile</strong> of where you end up across all 500 runs. <strong>P50</strong> (the bold line) is the median — half the outcomes land above it, half below. The shaded band spans <strong>P10 to P90</strong>: a 10% chance you do worse than the bottom edge, a 10% chance you do better than the top. A wide band means more uncertainty.</p>
-              <p class="info-box-note">Contributions and loan payoff are applied each year; cash grows at a steady 4.5%. This is a projection, not a guarantee.</p>
+              <p>Markets don't return the same amount every year. This runs <strong>500 simulated futures</strong> of your full plan — saving until retirement, then withdrawing your spending — where each year's return is drawn from a bell curve centered on your expected return (currently <strong id="mc-mean">7%</strong>) with <strong>±14% volatility</strong>, so some years boom and some crash.</p>
+              <p>Each line is a <strong>percentile</strong> of net worth across all 500 runs: <strong>P50</strong> (the bold line) is the median, and the shaded band spans <strong>P10–P90</strong>. The dashed gray line is the steady-return case shown elsewhere in the app — the band shows how far real markets can stray from it. The <strong>chance of success</strong> on the Overview is the share of these same runs that fund every year of retirement spending, so the two numbers always agree.</p>
+              <p class="info-box-note">Contributions and employer match stop at retirement; withdrawals cover spending after Social Security with RMDs from age 73; cash earns a steady 4.5%. A projection, not a guarantee.</p>
             </div>
           </div>
         </section>
@@ -539,6 +538,14 @@
           </div>
         </section>
 
+        <footer class="app-footer">
+          <p><strong>Educational estimates only — not financial, tax, investment, or legal advice.</strong>
+          Attending Launch uses simplified 2025 federal, state, and local tax rules and market
+          assumptions; actual taxes, returns, benefits, and account rules will differ. Nothing here
+          is a recommendation to buy, sell, or convert any asset. Consult a qualified financial
+          advisor, CPA, or attorney before acting on any figure shown.</p>
+          <p class="footer-meta">2025 tax year · simplified planning assumptions · your data stays in your browser unless you enable cloud sync</p>
+        </footer>
       </main>
     </div>
   </div>

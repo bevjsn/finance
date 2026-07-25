@@ -132,6 +132,18 @@ html, body {
 .stat-val { font-size: 18px; font-weight: 700; }
 .stat-val.good { color: var(--green); }
 .stat-val.bad { color: var(--red); }
+.stat-val .good { color: var(--green); }
+.stat-val .mid { color: var(--amber); }
+.stat-val .bad { color: var(--red); }
+
+/* ---- Disclaimer footer ---- */
+.app-footer {
+  margin-top: 26px; padding: 16px 4px 8px;
+  border-top: 1px solid var(--border);
+}
+.app-footer p { font-size: 11.5px; color: var(--text-faint); line-height: 1.55; max-width: 880px; }
+.app-footer strong { color: var(--text-dim); }
+.app-footer .footer-meta { margin-top: 6px; font-size: 10.5px; }
 
 /* Social Security timing cards */
 .ss-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
